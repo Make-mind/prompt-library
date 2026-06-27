@@ -363,7 +363,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
     </div>
     <div style="flex:1"></div>
     <span id="userStatus" style="font-size:11px;color:var(--text3);margin-right:8px"></span>
-    <button class="btn btn-outline btn-xs" id="loginBtn" onclick="loginWithEmail()" style="margin-right:8px">🔑 登录</button>
+    <button class="btn btn-outline btn-xs" id="cloudPullBtn" onclick="manualPullFromCloud()" style="margin-right:4px;display:none" title="从云端下载数据">☁️⬇</button>
+    <button class="btn btn-outline btn-xs" id="loginBtn" onclick="loginWithEmail()" style="margin-right:4px">🔑 登录</button>
     <button class="btn btn-outline btn-xs" id="logoutBtn" onclick="logoutUser()" style="display:none;margin-right:8px">退出</button>
     <span id="mediaDirStatus" style="font-size:11px;color:var(--danger);margin-right:8px;display:none">⚠ 未选择存储目录</span>
     <button class="btn btn-outline btn-sm" onclick="selectMediaDir()" style="margin-right:4px" title="选择媒体存储目录">📁</button>
@@ -397,7 +398,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
       <!-- PAGE 1: Library -->
       <div class="page active" id="pageLibrary">
         <div class="lib-header">
-          <div class="search-wrap"><span class="search-icon">🔍</span><input type="text" id="searchInput" placeholder="搜索提示词…" oninput="onSearch()"></div>
+          <div class="search-wrap"><span class="search-icon">🔍</span><input type="text" id="searchInput" placeholder="搜索提示词…" oninput="onSearch()" autocomplete="off"></div>
           <select class="sort-select" id="sortSelect" onchange="onSort()">
             <option value="newest">最新</option><option value="oldest">最早</option><option value="top">评分最高</option><option value="used">使用最多</option>
           </select>
@@ -1214,7 +1215,12 @@ function setToolFilter(v) { activeToolFilter = activeToolFilter===v ? null : v; 
 function setScenarioFilter(v) { activeScenarioFilter = activeScenarioFilter===v ? null : v; renderLibrary() }
 function setRatingFilter(v) { activeRatingFilter = activeRatingFilter===v ? null : v; renderLibrary() }
 function setTagFilter(v) { activeTagFilter = activeTagFilter===v ? null : v; renderLibrary() }
-function onSearch() { searchQuery = document.getElementById('searchInput').value.trim(); renderPrompts() }
+function onSearch() {
+  const newQ = document.getElementById('searchInput').value.trim()
+  if (newQ === searchQuery) return
+  searchQuery = newQ
+  renderPrompts()
+}
 function onSort() { sortBy = document.getElementById('sortSelect').value; renderPrompts() }
 function setView(v) { currentView=v; document.querySelectorAll('#viewToggle button').forEach(b=>b.classList.toggle('active',b.dataset.view===v)); renderPrompts() }
 
@@ -2826,14 +2832,33 @@ async function logoutUser() {
 
 function updateAuthUI() {
   const loginBtn = document.getElementById('loginBtn'), logoutBtn = document.getElementById('logoutBtn')
+  const cloudBtn = document.getElementById('cloudPullBtn')
   const status = document.getElementById('userStatus')
   if (_sbUser) {
     loginBtn.style.display = 'none'; logoutBtn.style.display = ''
+    if (cloudBtn) cloudBtn.style.display = ''
     status.textContent = '👤 ' + (_sbUser.email || '已登录')
   } else {
     loginBtn.style.display = ''; logoutBtn.style.display = 'none'
+    if (cloudBtn) cloudBtn.style.display = 'none'
     status.textContent = ''
   }
+}
+
+async function manualPullFromCloud() {
+  showToast('☁️ 下载中…')
+  try {
+    const cp = await cloudLoadPrompts()
+    if (cp.length > 0) { prompts = cp; saveData(STORAGE_KEY, prompts) }
+    const cl = await cloudLoadLogs()
+    if (cl.length > 0) { logs = cl; saveData(LOGS_KEY, logs) }
+    const cw = await cloudLoadWorkflows()
+    if (cw.length > 0) { workflows = cw; saveWorkflows() }
+    const cm = await cloudLoadMemos()
+    if (cm.length > 0) { memos = cm; localStorage.setItem(MEMO_KEY, JSON.stringify(memos)) }
+    renderAll()
+    showToast('☁️ 云端数据已下载')
+  } catch(e) { showToast('下载失败: ' + e.message) }
 }
 
 // ====== CLOUD SYNC ======
@@ -2897,17 +2922,8 @@ saveData = function(key, data) {
 
 // Login → load from cloud
 async function pullFromCloud() {
-  try {
-    const cp = await cloudLoadPrompts()
-    if (cp.length > 0) { prompts = cp; saveData(STORAGE_KEY, prompts) }
-    const cl = await cloudLoadLogs()
-    if (cl.length > 0) { logs = cl; saveData(LOGS_KEY, logs) }
-    const cw = await cloudLoadWorkflows()
-    if (cw.length > 0) { workflows = cw; saveWorkflows() }
-    const cm = await cloudLoadMemos()
-    if (cm.length > 0) { memos = cm; localStorage.setItem(MEMO_KEY, JSON.stringify(memos)) }
-    if (cp.length || cl.length || cw.length || cm.length) showToast('☁️ 云端数据已同步')
-  } catch(e) { /* offline or error */ }
+  // Don't auto-pull — only push on save. User can manually pull if needed.
+  return
 }
 
 // Push local data to cloud on first login
@@ -2962,7 +2978,6 @@ async function initAuth() {
       _sbToken = token
       _sbUser = JSON.parse(user)
       updateAuthUI()
-      await pullFromCloud()
       renderAll()
     } catch(e) { _sbToken = null; _sbUser = null }
   }
