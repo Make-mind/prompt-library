@@ -756,10 +756,15 @@ async function sbSave(table, row) {
     if (v === undefined || v === null) continue
     db[map[k] || k] = v
   }
-  if (row.id) {
-    return await sbAPI('/rest/v1/' + table + '?id=eq.' + encodeURIComponent(row.id), { method: 'PATCH', body: JSON.stringify(db) })
-  } else {
+  // Try POST first (since PATCH to non-existing row silently does nothing)
+  try {
     return await sbAPI('/rest/v1/' + table, { method: 'POST', body: JSON.stringify(db) })
+  } catch(e) {
+    // 409 duplicate → row exists, update via PATCH
+    if (row.id && (e.message.includes('409') || e.message.includes('duplicate'))) {
+      return await sbAPI('/rest/v1/' + table + '?id=eq.' + encodeURIComponent(row.id), { method: 'PATCH', body: JSON.stringify(db) })
+    }
+    throw e
   }
 }
 
@@ -2335,6 +2340,7 @@ async function savePrompt() {
   }
 
   closeModal()
+  await pullFromCloud()
   renderLibrary()
   if (currentDetailId === promptId) openDetail(promptId)
   editingId = null
