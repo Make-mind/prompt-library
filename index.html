@@ -709,11 +709,13 @@ async function sbAPI(path, options = {}) {
   if (_sbToken) headers['Authorization'] = 'Bearer ' + _sbToken
   const res = await fetch(SB_URL + path, { ...options, headers })
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error(err.message || err.msg || 'HTTP ' + res.status)
+    const text = await res.text()
+    console.error('API Error', path, res.status, text)
+    throw new Error(text || 'HTTP ' + res.status)
   }
   const text = await res.text()
-  return text ? JSON.parse(text) : null
+  if (!text) return null  // 204 No Content or empty body = success
+  return JSON.parse(text)
 }
 
 async function sbSignIn(email, password) {
@@ -754,12 +756,10 @@ async function sbSave(table, row) {
     db[map[k] || k] = v
   }
   if (row.id) {
-    const check = await sbAPI('/rest/v1/' + table + '?id=eq.' + encodeURIComponent(row.id) + '&select=id').catch(() => [])
-    if (check && check.length > 0) {
-      return await sbAPI('/rest/v1/' + table + '?id=eq.' + encodeURIComponent(row.id), { method: 'PATCH', body: JSON.stringify(db) })
-    }
+    return await sbAPI('/rest/v1/' + table + '?id=eq.' + encodeURIComponent(row.id), { method: 'PATCH', body: JSON.stringify(db) })
+  } else {
+    return await sbAPI('/rest/v1/' + table, { method: 'POST', body: JSON.stringify(db) })
   }
-  return await sbAPI('/rest/v1/' + table, { method: 'POST', body: JSON.stringify(db) })
 }
 
 async function sbDel(table, id) {
@@ -2928,21 +2928,25 @@ async function pushToCloud() {
 async function pushMediaToCloud() {
   if (!_sbToken) return showToast('请先登录')
   const pushed = JSON.parse(localStorage.getItem('_sb_media_push') || '{}')
-  let count = 0
+  let count = 0, skip = 0
   for (const p of prompts) {
     const atts = (p.attachments || []).filter(a => a._fileName && !a._storagePath && !pushed[a._fileName])
     for (const a of atts) {
+      // Skip thumbnails (only upload original files)
+      if (a._fileName.includes('.thumb') || a._fileName.startsWith('.')) { skip++; continue }
       try {
         const file = await readMediaFile(a._fileName).catch(() => null)
-        if (file) {
-          const storagePath = p.id + '/' + a._fileName
-          const url = await sbStorageUpload(storagePath, file, file.type)
-          a._storagePath = storagePath; a._cloudUrl = url
-          pushed[a._fileName] = true
-          count++
-          showToast(`上传中… ${count}`)
-        }
-      } catch(e) { /* skip failed files */ }
+        if (!file) { console.log('文件读取失败:', a._fileName); skip++; continue }
+        if (file.size === 0) { console.log('空文件:', a._fileName); skip++; continue }
+        const safeName = a.name ? a.name.replace(/[^a-zA-Z0-9._-]/g, '_') : a._fileName.replace(/^.*[\\/]/, '').replace(/[^a-zA-Z0-9._-]/g, '_')
+        const storagePath = p.id + '/' + Date.now() + '_' + safeName
+        console.log('上传:', safeName, file.size, file.type)
+        const url = await sbStorageUpload(storagePath, file, file.type || 'application/octet-stream')
+        a._storagePath = storagePath; a._cloudUrl = url
+        pushed[a._fileName] = true
+        count++
+        showToast(`上传中… ${count}`)
+      } catch(e) { console.error('上传失败:', a._fileName, e.message) }
     }
   }
   saveData(STORAGE_KEY, prompts)
