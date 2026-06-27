@@ -766,6 +766,31 @@ async function sbDel(table, id) {
   return await sbAPI('/rest/v1/' + table + '?id=eq.' + encodeURIComponent(id), { method: 'DELETE' })
 }
 
+// ====== SUPABASE STORAGE ======
+function sbPublicUrl(bucket, path) {
+  return SB_URL + '/storage/v1/object/public/' + bucket + '/' + path
+}
+
+async function sbStorageUpload(path, blob, contentType) {
+  const headers = {
+    'apikey': SB_KEY,
+    'Authorization': 'Bearer ' + _sbToken,
+    'Content-Type': contentType || 'application/octet-stream',
+    'x-upsert': 'true'
+  }
+  const res = await fetch(SB_URL + '/storage/v1/object/attachments/' + path, { method: 'POST', headers, body: blob })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.message || 'Upload failed: ' + res.status)
+  }
+  return sbPublicUrl('attachments', path)
+}
+
+async function sbStorageDelete(path) {
+  const headers = { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + _sbToken }
+  await fetch(SB_URL + '/storage/v1/object/attachments/' + path, { method: 'DELETE', headers })
+}
+
 // ====== CONSTANTS ======
 const STORAGE_KEY = 'prompt_library_v2'
 const LOGS_KEY = 'generation_logs_v1'
@@ -1158,7 +1183,7 @@ function renderPrompts() {
 }
 
 async function loadCardThumbnails(filteredList) {
-  if (!(await getMediaDir())) return
+  if (!_sbToken && !(await getMediaDir())) return
   for (const p of filteredList) {
     const atts = p.attachments || []
     if (atts.length === 0) continue
@@ -1169,7 +1194,8 @@ async function loadCardThumbnails(filteredList) {
     let html = ''
     for (const a of showAtts) {
       const isVid = (a.type||'').startsWith('video/')
-      const url = a._thumbName ? await urlForMediaFile(a._thumbName) : null
+      let url = a._cloudUrl || null
+      if (!url && a._thumbName) url = await urlForMediaFile(a._thumbName).catch(()=>null)
       if (url) {
         html += `<div class="card-thumb"><img src="${url}">${isVid?`<span class="thumb-icon">▶</span>`:''}</div>`
       } else {
@@ -2086,49 +2112,54 @@ function removeExistingAttachment(attachId) {
 }
 
 async function processAttachmentsForSave(promptId) {
-  if (!(await getMediaDir())) { showToast('请先选择存储目录'); throw new Error('无存储目录') }
+  const cloud = !!_sbToken
+  if (!cloud && !(await getMediaDir())) { showToast('请先选择存储目录'); throw new Error('无存储目录') }
 
-  // Delete removed attachments' files from disk
+  // Delete removed attachments
   const p = prompts.find(x => x.id === promptId)
-  const removedNames = []
+  const removedNames = []; const removedPaths = []
   if (p) {
     for (const id of _removedAttachmentIds) {
       const a = (p.attachments||[]).find(x => x.id === id)
-      if (a) { removedNames.push(a._fileName); removedNames.push(a._thumbName) }
+      if (a) {
+        if (cloud && a._storagePath) removedPaths.push(a._storagePath)
+        else { removedNames.push(a._fileName); removedNames.push(a._thumbName) }
+      }
     }
   }
-  for (const name of removedNames) {
-    try { await deleteMediaFile(name) } catch(e) { /* ignore */ }
-  }
+  for (const name of removedNames) { try { await deleteMediaFile(name) } catch(e){} }
+  for (const path of removedPaths) { try { await sbStorageDelete(path) } catch(e){} }
 
-  // Save pending files to disk
+  // Save pending files
   const savedMeta = []
   for (const f of _pendingAttachments) {
     const attId = genId('att')
     const isVideo = (f.type||'').startsWith('video/')
-    const fileName = makeFileName(promptId, f.name, false)
-    const thumbName = makeFileName(promptId, f.name, true)
+    const storagePath = promptId + '/' + genId('f') + '_' + f.name.replace(/[^a-zA-Z0-9._-]/g, '_')
     let thumbW = 200, thumbH = 150
 
-    // Generate and save thumbnail
-    try {
-      let thumbBlob = null
-      if (isVideo) {
-        const result = await generateVideoThumbnail(f)
-        if (result) { thumbBlob = result.blob; thumbW = result.w; thumbH = result.h }
-      } else {
-        const result = await generateImageThumbnail(f)
-        thumbBlob = result.blob; thumbW = result.w; thumbH = result.h
+    if (cloud) {
+      // Upload to Supabase Storage
+      try {
+        const url = await sbStorageUpload(storagePath, f, f.type)
+        savedMeta.push({ id: attId, name: f.name, type: f.type, size: f.size, thumbnailWidth: thumbW, thumbnailHeight: thumbH, _storagePath: storagePath, _cloudUrl: url })
+      } catch(e) {
+        showToast(`「${f.name}」上传失败: ${e.message}`)
       }
-      if (thumbBlob) await writeMediaFile(thumbName, thumbBlob)
-    } catch(e) { /* no thumbnail, keep placeholder */ }
-
-    // Save original file
-    try {
-      await writeMediaFile(fileName, f)
-      savedMeta.push({ id: attId, name: f.name, type: f.type, size: f.size, thumbnailWidth: thumbW, thumbnailHeight: thumbH, _fileName: fileName, _thumbName: thumbName })
-    } catch(e) {
-      showToast(`「${f.name}」保存失败: ${e.message}`)
+    } else {
+      // Save locally
+      const fileName = makeFileName(promptId, f.name, false)
+      const thumbName = makeFileName(promptId, f.name, true)
+      try {
+        let thumbBlob = null
+        if (isVideo) { const r = await generateVideoThumbnail(f); if (r) { thumbBlob = r.blob; thumbW = r.w; thumbH = r.h } }
+        else { const r = await generateImageThumbnail(f); thumbBlob = r.blob; thumbW = r.w; thumbH = r.h }
+        if (thumbBlob) await writeMediaFile(thumbName, thumbBlob)
+      } catch(e) { /* no thumb */ }
+      try {
+        await writeMediaFile(fileName, f)
+        savedMeta.push({ id: attId, name: f.name, type: f.type, size: f.size, thumbnailWidth: thumbW, thumbnailHeight: thumbH, _fileName: fileName, _thumbName: thumbName })
+      } catch(e) { showToast(`「${f.name}」保存失败: ${e.message}`) }
     }
   }
 
@@ -2158,9 +2189,11 @@ async function renderLightboxContent() {
   // Revoke previous URL
   if (_lightboxUrl) URL.revokeObjectURL(_lightboxUrl)
 
-  if (a._fileName) {
-    _lightboxUrl = await urlForMediaFile(a._fileName)
-    if (_lightboxUrl) {
+  _lightboxUrl = a._cloudUrl || null
+  if (!_lightboxUrl && a._fileName) {
+    _lightboxUrl = await urlForMediaFile(a._fileName).catch(()=>null)
+  }
+  if (_lightboxUrl) {
       const isVideo = (a.type||'').startsWith('video/')
       const content = document.getElementById('lightboxContent')
       if (isVideo) {
@@ -2169,11 +2202,8 @@ async function renderLightboxContent() {
         content.innerHTML = `<img src="${_lightboxUrl}" style="max-width:90vw;max-height:80vh;border-radius:12px;object-fit:contain">`
       }
     } else {
-      document.getElementById('lightboxContent').innerHTML = `<div style="color:#fff;text-align:center;padding:40px"><div style="font-size:48px;margin-bottom:12px">📁</div><p>文件未找到（可能已被移动或删除）</p></div>`
+      document.getElementById('lightboxContent').innerHTML = `<div style="color:#fff;text-align:center;padding:40px"><div style="font-size:48px;margin-bottom:12px">📁</div><p>文件未找到</p></div>`
     }
-  } else {
-    document.getElementById('lightboxContent').innerHTML = `<div style="color:#fff;text-align:center;padding:40px"><p>无法加载（旧格式附件，请重新上传）</p></div>`
-  }
 
   document.getElementById('lightboxInfo').textContent = `${a.name} · 第 ${_lightboxIndex+1}/${atts.length} 张`
   document.getElementById('lightboxPrev').style.display = _lightboxIndex > 0 ? 'flex' : 'none'
@@ -2390,15 +2420,16 @@ async function openDetail(id) {
   document.getElementById('detailCopyBtn').onclick = ()=>copyFullPrompt(id)
   document.getElementById('detailEditBtn').onclick = ()=>{closeDetail();openEditModal(id)}
   document.getElementById('detailLogBtn').onclick = ()=>{closeDetail();openLogModal(id)}
-  document.getElementById('detailDeleteBtn').onclick = ()=>{showConfirm('确认删除',`确定要删除「${p.title}」吗？`,()=>{const atts=(p.attachments||[]);prompts=prompts.filter(x=>x.id!==id);saveData(STORAGE_KEY,prompts);if(_sbToken)cloudDeletePrompt(id).catch(()=>{});closeDetail();renderLibrary();showToast('已删除');(async()=>{for(const a of atts){if(a._fileName)await deleteMediaFile(a._fileName);if(a._thumbName)await deleteMediaFile(a._thumbName)}})()})}
+  document.getElementById('detailDeleteBtn').onclick = ()=>{showConfirm('确认删除',`确定要删除「${p.title}」吗？`,()=>{const atts=(p.attachments||[]);prompts=prompts.filter(x=>x.id!==id);saveData(STORAGE_KEY,prompts);if(_sbToken)cloudDeletePrompt(id).catch(()=>{});closeDetail();renderLibrary();showToast('已删除');(async()=>{for(const a of atts){if(a._storagePath){sbStorageDelete(a._storagePath).catch(()=>{})}else{if(a._fileName)await deleteMediaFile(a._fileName).catch(()=>{});if(a._thumbName)await deleteMediaFile(a._thumbName).catch(()=>{})}}})()})}
   document.getElementById('detailOverlay').classList.add('open')
   document.getElementById('detailPanel').classList.add('open')
 
-  // Async load gallery thumbnails from disk
-  if (atts.length > 0 && await getMediaDir()) {
+  // Async load gallery thumbnails
+  if (atts.length > 0 && (_sbToken || await getMediaDir())) {
     for (let i = 0; i < atts.length; i++) {
       const a = atts[i]
-      const url = a._thumbName ? await urlForMediaFile(a._thumbName) : null
+      let url = a._cloudUrl || null
+      if (!url && a._thumbName) url = await urlForMediaFile(a._thumbName).catch(()=>null)
       if (url) {
         const thumbEl = document.getElementById('daThumb-' + a.id)
         if (thumbEl) {
