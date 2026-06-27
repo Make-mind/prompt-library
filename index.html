@@ -2925,6 +2925,31 @@ async function pushToCloud() {
   } catch(e) { /* offline */ }
 }
 
+async function pushMediaToCloud() {
+  if (!_sbToken) return showToast('请先登录')
+  const pushed = JSON.parse(localStorage.getItem('_sb_media_push') || '{}')
+  let count = 0
+  for (const p of prompts) {
+    const atts = (p.attachments || []).filter(a => a._fileName && !a._storagePath && !pushed[a._fileName])
+    for (const a of atts) {
+      try {
+        const file = await readMediaFile(a._fileName).catch(() => null)
+        if (file) {
+          const storagePath = p.id + '/' + a._fileName
+          const url = await sbStorageUpload(storagePath, file, file.type)
+          a._storagePath = storagePath; a._cloudUrl = url
+          pushed[a._fileName] = true
+          count++
+          showToast(`上传中… ${count}`)
+        }
+      } catch(e) { /* skip failed files */ }
+    }
+  }
+  saveData(STORAGE_KEY, prompts)
+  localStorage.setItem('_sb_media_push', JSON.stringify(pushed))
+  showToast(`☁️ ${count} 个附件已上传云端`)
+}
+
 async function initAuth() {
   const token = localStorage.getItem('_sb_token')
   const user = localStorage.getItem('_sb_user')
