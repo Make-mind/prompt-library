@@ -2796,6 +2796,7 @@ async function doPasswordLogin() {
     closeLoginModal()
     showToast('✅ 登录成功')
     await pullFromCloud()
+    await pushToCloud()
     renderAll()
   } catch(e) {
     // If user doesn't exist, try sign up
@@ -2922,22 +2923,27 @@ saveData = function(key, data) {
 
 // Login → load from cloud
 async function pullFromCloud() {
-  // Don't auto-pull — only push on save. User can manually pull if needed.
-  return
+  try {
+    const cp = await cloudLoadPrompts()
+    if (cp.length > 0) { prompts = cp; saveData(STORAGE_KEY, prompts) }
+    const cl = await cloudLoadLogs()
+    if (cl.length > 0) { logs = cl; saveData(LOGS_KEY, logs) }
+    const cw = await cloudLoadWorkflows()
+    if (cw.length > 0) { workflows = cw; saveWorkflows() }
+    const cm = await cloudLoadMemos()
+    if (cm.length > 0) { memos = cm; localStorage.setItem(MEMO_KEY, JSON.stringify(memos)) }
+    if (cp.length || cl.length || cw.length || cm.length) showToast('☁️ 云端数据已同步')
+  } catch(e) { /* offline */ }
 }
 
 // Push local data to cloud on first login
 async function pushToCloud() {
   if (!_sbToken) return
-  const done = localStorage.getItem('_sb_push_v1')
-  if (done) return
   try {
     for (const p of prompts) { if (!p.id.startsWith('sample-')) await cloudSavePrompt(p).catch(()=>{}) }
-    for (const l of logs) { if (l.id.length > 8) await cloudSaveLog(l).catch(()=>{}) }
+    for (const l of logs) { await cloudSaveLog(l).catch(()=>{}) }
     for (const w of workflows) { await cloudSaveWorkflow(w).catch(()=>{}) }
     for (const m of memos) { await cloudSaveMemo(m).catch(()=>{}) }
-    localStorage.setItem('_sb_push_v1', '1')
-    showToast('☁️ 本地数据已上传云端')
   } catch(e) { /* offline */ }
 }
 
@@ -2978,6 +2984,7 @@ async function initAuth() {
       _sbToken = token
       _sbUser = JSON.parse(user)
       updateAuthUI()
+      await pullFromCloud()
       renderAll()
     } catch(e) { _sbToken = null; _sbUser = null }
   }
