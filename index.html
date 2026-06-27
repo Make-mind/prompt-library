@@ -1,0 +1,2919 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>提示词库 — AIGC Prompt Library</title>
+<style>
+:root {
+  --bg: #F8FAFC; --sidebar-w: 280px;
+  --primary: #6366F1; --primary-hover: #4F46E5; --primary-light: #EEF2FF;
+  --text: #0F172A; --text2: #475569; --text3: #94A3B8; --border: #E2E8F0;
+  --card: #FFFFFF; --danger: #EF4444; --danger-light: #FEF2F2;
+  --success: #10B981; --success-light: #ECFDF5; --warning: #F59E0B; --warning-light: #FFFBEB;
+  --radius: 12px; --radius-sm: 8px; --radius-lg: 16px;
+  --shadow: 0 1px 2px rgba(0,0,0,0.04); --shadow-md: 0 4px 12px rgba(0,0,0,0.06); --shadow-lg: 0 12px 32px rgba(0,0,0,0.08);
+  --transition: 0.2s cubic-bezier(0.4,0,0.2,1);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--text);line-height:1.6;height:100vh;overflow:hidden;-webkit-font-smoothing:antialiased}
+.app{display:flex;flex-direction:column;height:100vh}
+
+/* Top Nav */
+.topnav{display:flex;align-items:center;background:var(--card);border-bottom:1px solid var(--border);padding:0 20px;height:52px;flex-shrink:0;gap:0}
+.topnav .logo-area{display:flex;align-items:center;gap:8px;margin-right:24px;font-size:16px;font-weight:800;color:var(--primary);letter-spacing:-0.3px}
+.topnav .logo-area svg{width:22px;height:22px}
+.nav-tabs{display:flex;gap:2px;height:100%;align-items:center}
+.nav-tab{padding:6px 14px;height:34px;display:flex;align-items:center;font-size:13px;font-weight:600;color:var(--text2);cursor:pointer;border:none;background:none;border-radius:8px;transition:var(--transition);font-family:inherit;gap:5px;white-space:nowrap}
+.nav-tab:hover{color:var(--text);background:var(--bg)}
+.nav-tab.active{color:var(--primary);background:var(--primary-light)}
+.nav-tab .badge{background:var(--primary);color:#fff;font-size:10px;padding:1px 6px;border-radius:8px;font-weight:700;min-width:18px;text-align:center}
+
+/* App body */
+.app-body{display:flex;flex:1;overflow:hidden}
+
+/* Sidebar */
+.sidebar{width:var(--sidebar-w);background:var(--card);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0;transition:var(--transition)}
+.sidebar.hidden{width:0;overflow:hidden;border:none;padding:0}
+.sidebar-body{flex:1;overflow-y:auto;padding:20px}
+.sidebar-footer{padding:16px 20px;border-top:1px solid var(--border)}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 18px;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;transition:var(--transition);font-family:inherit;white-space:nowrap;letter-spacing:-0.1px}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-primary:hover{background:var(--primary-hover);box-shadow:0 2px 8px rgba(99,102,241,0.25)}
+.btn-outline{background:var(--card);color:var(--text);border:1.5px solid var(--border)}
+.btn-outline:hover{background:var(--bg);border-color:var(--text3)}
+.btn-sm{padding:7px 12px;font-size:12px}
+.btn-xs{padding:4px 10px;font-size:11px;border-radius:6px}
+.btn-ghost{background:transparent;color:var(--text2);padding:6px 10px}
+.btn-ghost:hover{background:var(--bg);color:var(--text)}
+.btn-danger{background:var(--danger-light);color:var(--danger)}
+.btn-danger:hover{background:var(--danger);color:#fff}
+.btn-success{background:var(--success);color:#fff}
+.btn-success:hover{opacity:0.9}
+
+/* Filter chips */
+.filter-group{margin-bottom:18px}
+.filter-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--text3);margin-bottom:8px}
+.filter-chips{display:flex;flex-wrap:wrap;gap:5px}
+.chip{padding:5px 12px;border-radius:16px;font-size:12px;font-weight:500;cursor:pointer;transition:var(--transition);border:1.5px solid var(--border);background:var(--card);color:var(--text2);white-space:nowrap}
+.chip:hover{border-color:var(--primary);color:var(--primary);background:var(--primary-light)}
+.chip.active{background:var(--primary);border-color:var(--primary);color:#fff;font-weight:600}
+.chip .count{font-size:10px;opacity:0.7;margin-left:2px}
+
+/* Main area */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.page{display:none;flex:1;flex-direction:column;overflow:hidden}
+.page.active{display:flex}
+
+/* Library header */
+.lib-header{padding:14px 24px;background:var(--card);border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:center}
+.search-wrap{flex:1;position:relative}
+.search-wrap input{width:100%;padding:9px 14px 9px 36px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;background:var(--bg);color:var(--text);font-family:inherit;transition:var(--transition)}
+.search-wrap input:focus{outline:none;border-color:var(--primary);background:var(--card);box-shadow:0 0 0 3px rgba(99,102,241,0.08)}
+.search-wrap .search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:14px}
+.sort-select{padding:9px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;background:var(--bg);color:var(--text);font-family:inherit;cursor:pointer}
+.sort-select:focus{outline:none;border-color:var(--primary)}
+.view-toggle{display:flex;border:1.5px solid var(--border);border-radius:var(--radius-sm);overflow:hidden}
+.view-toggle button{padding:9px 11px;border:none;background:var(--card);cursor:pointer;font-size:15px;transition:var(--transition);color:var(--text3)}
+.view-toggle button.active{background:var(--primary-light);color:var(--primary)}
+.stats-bar{display:flex;gap:12px;padding:14px 24px;flex-wrap:wrap}
+.stat-card{flex:1;min-width:110px;background:var(--card);border-radius:var(--radius);padding:14px 18px;box-shadow:var(--shadow);border:1px solid var(--border)}
+.stat-card .stat-num{font-size:24px;font-weight:800;color:var(--text);letter-spacing:-0.5px}
+.stat-card .stat-label{font-size:11px;color:var(--text3);margin-top:2px}
+.prompts-scroll{flex:1;overflow-y:auto;padding:0 24px 24px}
+.prompts-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}
+.prompts-grid.list-view{grid-template-columns:1fr;max-width:860px}
+
+/* Cards */
+.prompt-card{background:var(--card);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);cursor:pointer;transition:var(--transition);border:1px solid var(--border)}
+.prompt-card:hover{border-color:var(--primary);box-shadow:var(--shadow-md)}
+.prompt-card .card-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px}
+.prompt-card .card-title{font-size:15px;font-weight:700;color:var(--text);flex:1;margin-right:8px;letter-spacing:-0.2px}
+.prompt-card .card-actions{display:flex;gap:2px;flex-shrink:0;opacity:0;transition:var(--transition)}
+.prompt-card:hover .card-actions{opacity:1}
+.prompt-card .card-actions button{padding:5px 7px;border:none;background:transparent;cursor:pointer;border-radius:6px;font-size:13px;color:var(--text3);transition:var(--transition)}
+.prompt-card .card-actions button:hover{background:var(--bg);color:var(--primary)}
+.prompt-card .card-meta{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px}
+.prompt-card .card-preview{font-size:12px;color:var(--text2);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:10px}
+.prompt-card .card-footer{display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--text3)}
+.prompt-card .stars{color:var(--warning);font-size:13px;letter-spacing:1px}
+.tool-badge{padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;white-space:nowrap}
+.tool-gpt{background:#ECFDF5;color:#059669}
+.tool-jimeng{background:#FFF7ED;color:#EA580C}
+.tool-mj{background:#F3F0FF;color:#7C3AED}
+.tool-nano{background:#FEF2F2;color:#DC2626}
+.tool-sora{background:#F0F9FF;color:#0284C7}
+.tool-omni{background:#FDF4FF;color:#A21CAF}
+.tool-seedance{background:#ECFEFF;color:#0F766E}
+.empty-state{display:none;text-align:center;padding:60px 20px}
+.empty-state.visible{display:block}
+.empty-state .empty-icon{font-size:56px;margin-bottom:12px}
+.empty-state h3{font-size:16px;color:var(--text);margin-bottom:6px;font-weight:700}
+.empty-state p{color:var(--text3);font-size:13px}
+
+/* Template Engine */
+.tmpl-layout{display:flex;flex:1;overflow:hidden}
+.tmpl-config{width:360px;flex-shrink:0;overflow-y:auto;padding:20px;background:var(--card);border-right:1px solid var(--border)}
+.tmpl-config h3{font-size:14px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:6px}
+.tmpl-preview{flex:1;overflow-y:auto;padding:20px}
+.tmpl-preview h3{font-size:14px;font-weight:700;margin-bottom:10px}
+.tmpl-prompt-box{background:var(--card);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);font-size:14px;line-height:1.8;white-space:pre-wrap;min-height:100px;margin-bottom:14px;color:var(--text);border:1px solid var(--border)}
+.tmpl-dims-box{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.tmpl-dim-item{background:var(--bg);padding:8px 12px;border-radius:var(--radius-sm);font-size:11px}
+.tmpl-dim-item .dl{font-weight:700;color:var(--primary);font-size:9px;text-transform:uppercase;margin-bottom:2px}
+.tmpl-dim-item .dv{color:var(--text2);line-height:1.4}
+.tmpl-presets{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:14px}
+.tmpl-preset{padding:7px 14px;border-radius:16px;font-size:11px;font-weight:600;cursor:pointer;border:1.5px solid var(--border);background:var(--card);color:var(--text2);transition:var(--transition);font-family:inherit}
+.tmpl-preset:hover{border-color:var(--primary);color:var(--primary);background:var(--primary-light)}
+.tmpl-preset.active{background:var(--primary);border-color:var(--primary);color:#fff}
+
+/* Generation Log */
+.log-layout{display:flex;flex-direction:column;flex:1;overflow:hidden}
+.log-summary{display:flex;gap:12px;padding:16px 24px;flex-wrap:wrap}
+.log-summary .stat-card .stat-num.cost{color:var(--danger)}
+.log-summary .stat-card .stat-num.success{color:var(--success)}
+.log-toolbar{padding:0 24px 14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.log-toolbar select{padding:7px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:12px;background:var(--bg);color:var(--text);font-family:inherit}
+.log-scroll{flex:1;overflow-y:auto;padding:0 24px 24px}
+.log-table{width:100%;border-collapse:collapse;font-size:12px}
+.log-table th{text-align:left;padding:8px 10px;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;border-bottom:2px solid var(--border);background:var(--card);position:sticky;top:0;z-index:1}
+.log-table td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:middle}
+.log-table tr:hover td{background:var(--bg)}
+.log-result{display:inline-flex;padding:2px 8px;border-radius:8px;font-size:10px;font-weight:600}
+.log-result.success{background:var(--success-light);color:var(--success)}
+.log-result.partial{background:var(--warning-light);color:var(--warning)}
+.log-result.fail{background:var(--danger-light);color:var(--danger)}
+.log-cost{font-weight:600;color:var(--danger)}
+.log-table .prompt-preview{max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text2)}
+.log-table .actions-cell{display:flex;gap:2px}
+.log-table .actions-cell button{padding:3px 6px;border:none;background:transparent;cursor:pointer;border-radius:4px;font-size:11px;color:var(--text3)}
+.log-table .actions-cell button:hover{background:var(--bg);color:var(--danger)}
+
+/* Modals */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,0.4);z-index:1000;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.modal-overlay.open{display:flex}
+.modal{background:var(--card);border-radius:var(--radius-lg);width:680px;max-width:95vw;max-height:85vh;overflow-y:auto;box-shadow:var(--shadow-lg)}
+.modal.small{width:460px}
+.modal-header{padding:18px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--card);border-radius:var(--radius-lg) var(--radius-lg) 0 0;z-index:1}
+.modal-header h2{font-size:17px;font-weight:700}
+.modal-close{width:32px;height:32px;border-radius:50%;border:none;background:var(--bg);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:var(--transition);color:var(--text3)}
+.modal-close:hover{background:var(--danger-light);color:var(--danger)}
+.modal-body{padding:20px 22px}
+.modal-tabs{display:flex;gap:3px;background:var(--bg);padding:3px;border-radius:10px;margin-bottom:18px}
+.modal-tab{flex:1;padding:8px;border:none;background:transparent;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:var(--transition);color:var(--text2);font-family:inherit}
+.modal-tab.active{background:var(--card);color:var(--primary);box-shadow:var(--shadow)}
+.form-group{margin-bottom:14px}
+.form-label{font-size:12px;font-weight:600;color:var(--text);margin-bottom:5px;display:block}
+.form-label .hint{font-weight:400;color:var(--text3);font-size:11px}
+.form-input,.form-textarea,.form-select{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;color:var(--text);font-family:inherit;transition:var(--transition);background:var(--bg)}
+.form-input:focus,.form-textarea:focus,.form-select:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(99,102,241,0.08);background:var(--card)}
+.form-textarea{resize:vertical;min-height:72px}
+.form-select{cursor:pointer}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.form-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.dim-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.dim-field textarea{min-height:56px;font-size:12px}
+
+/* Detail panel */
+.detail-overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,0.3);z-index:999}
+.detail-overlay.open{display:block}
+.detail-panel{position:fixed;right:0;top:0;bottom:0;width:460px;max-width:95vw;background:var(--card);z-index:1000;box-shadow:-8px 0 32px rgba(0,0,0,0.08);transform:translateX(100%);transition:transform 0.3s cubic-bezier(0.4,0,0.2,1);display:flex;flex-direction:column}
+.detail-panel.open{transform:translateX(0)}
+.detail-panel-header{padding:18px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.detail-panel-body{flex:1;overflow-y:auto;padding:22px}
+.detail-panel-footer{padding:14px 22px;border-top:1px solid var(--border);display:flex;gap:6px}
+.detail-dim{margin-bottom:12px}
+.detail-dim .dim-label{font-size:10px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px}
+.detail-dim .dim-value{font-size:13px;color:var(--text);line-height:1.5;background:var(--bg);padding:8px 12px;border-radius:var(--radius-sm)}
+
+/* Toast */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--text);color:#fff;padding:10px 22px;border-radius:20px;font-size:13px;font-weight:600;z-index:2000;transition:transform 0.3s cubic-bezier(0.4,0,0.2,1);pointer-events:none;box-shadow:var(--shadow-lg)}
+.toast.show{transform:translateX(-50%) translateY(0)}
+
+/* AI loading */
+.ai-loading{display:none;align-items:center;gap:6px;padding:8px 14px;background:var(--primary-light);border-radius:var(--radius-sm);font-size:12px;color:var(--primary);font-weight:500;margin-top:8px}
+.ai-loading.visible{display:flex}
+.ai-dot{width:5px;height:5px;border-radius:50%;background:var(--primary);animation:bounce 1.4s infinite}
+.ai-dot:nth-child(2){animation-delay:0.2s}
+.ai-dot:nth-child(3){animation-delay:0.4s}
+@keyframes bounce{0%,80%,100%{opacity:0.3;transform:scale(0.8)}40%{opacity:1;transform:scale(1.2)}}
+
+/* Confirm */
+.confirm-overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,0.5);z-index:2000;align-items:center;justify-content:center}
+.confirm-overlay.open{display:flex}
+.confirm-box{background:var(--card);border-radius:var(--radius-lg);padding:26px;text-align:center;max-width:340px;box-shadow:var(--shadow-lg)}
+.confirm-box h3{font-size:16px;font-weight:700;margin-bottom:6px}
+.confirm-box p{color:var(--text2);font-size:13px;margin-bottom:18px}
+.confirm-actions{display:flex;gap:8px;justify-content:center}
+
+/* Card thumbnails */
+.card-thumbs{display:flex;gap:4px;margin-bottom:8px;overflow:hidden;flex-wrap:wrap}
+.card-thumb{width:52px;height:40px;border-radius:6px;background:var(--bg);position:relative;overflow:hidden;flex-shrink:0}
+.card-thumb img{width:100%;height:100%;object-fit:cover}
+.card-thumb .thumb-icon{position:absolute;bottom:1px;right:1px;font-size:9px;background:rgba(0,0,0,0.6);color:#fff;border-radius:3px;padding:0 3px;line-height:1.3}
+.card-thumb-more{display:flex;align-items:center;justify-content:center;width:52px;height:40px;border-radius:6px;background:var(--primary-light);font-size:10px;font-weight:700;color:var(--primary);flex-shrink:0}
+
+/* Attachment preview */
+.attach-preview-item{display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--bg);border-radius:var(--radius-sm);position:relative}
+.attach-preview-item .ap-thumb{width:52px;height:40px;border-radius:6px;object-fit:cover;background:var(--border);flex-shrink:0}
+.attach-preview-item .ap-thumb.placeholder{display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--text3)}
+.attach-preview-item .ap-info{flex:1;min-width:0}
+.attach-preview-item .ap-name{font-size:12px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.attach-preview-item .ap-meta{font-size:10px;color:var(--text3)}
+.attach-preview-item .ap-remove{width:24px;height:24px;border-radius:50%;border:none;background:var(--danger-light);color:var(--danger);cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;transition:var(--transition);flex-shrink:0}
+.attach-preview-item .ap-remove:hover{background:var(--danger);color:#fff}
+
+/* Detail gallery */
+.detail-attachments{margin-top:14px}
+.detail-attachments-header{font-size:11px;font-weight:700;color:var(--text3);margin-bottom:8px}
+.detail-attachments-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:6px}
+.detail-attach-item{cursor:pointer;border-radius:var(--radius-sm);overflow:hidden;background:var(--bg);border:2px solid transparent;transition:var(--transition)}
+.detail-attach-item:hover{border-color:var(--primary)}
+.detail-attach-item .da-thumb{width:100%;height:80px;object-fit:cover;display:block;background:var(--border)}
+.detail-attach-item .da-thumb.placeholder{display:flex;align-items:center;justify-content:center;font-size:30px;color:var(--text3);height:80px}
+.detail-attach-item .da-label{padding:5px 7px;font-size:10px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}
+
+/* Lightbox */
+.lightbox-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.94);z-index:3000;align-items:center;justify-content:center}
+.lightbox-overlay.open{display:flex}
+.lightbox-close{position:absolute;top:20px;right:20px;width:40px;height:40px;border-radius:50%;border:2px solid rgba(255,255,255,0.2);background:rgba(0,0,0,0.4);color:#fff;font-size:20px;cursor:pointer;z-index:10;transition:var(--transition);display:flex;align-items:center;justify-content:center}
+.lightbox-close:hover{background:rgba(239,68,68,0.7);border-color:transparent}
+.lightbox-prev,.lightbox-next{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;border:none;background:rgba(255,255,255,0.12);color:#fff;font-size:26px;cursor:pointer;transition:var(--transition);display:flex;align-items:center;justify-content:center;z-index:10}
+.lightbox-prev:hover,.lightbox-next:hover{background:rgba(255,255,255,0.25)}
+.lightbox-prev{left:20px}.lightbox-next{right:20px}
+.lightbox-content{max-width:90vw;max-height:80vh;display:flex;align-items:center;justify-content:center}
+.lightbox-content img,.lightbox-content video{max-width:90vw;max-height:80vh;border-radius:12px;object-fit:contain}
+.lightbox-info{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.7);color:#fff;padding:8px 18px;border-radius:16px;font-size:12px;font-weight:500}
+
+/* Page: Workflow Canvas */
+.workflow-layout{display:flex;flex:1;overflow:hidden}
+.workflow-panel{width:200px;flex-shrink:0;background:var(--card);border-right:1px solid var(--border);overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+.workflow-panel h4{font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px}
+.workflow-node-btn{display:flex;align-items:center;gap:8px;padding:12px;border-radius:10px;border:2px solid var(--border);background:var(--card);cursor:pointer;transition:var(--transition);font-family:inherit;font-size:13px;font-weight:500;color:var(--text);text-align:left}
+.workflow-node-btn:hover{border-color:var(--primary);background:var(--primary-light)}
+.workflow-node-btn .wn-icon{font-size:22px;flex-shrink:0}
+.workflow-node-btn .wn-label{line-height:1.3}
+.workflow-node-btn .wn-hint{font-size:10px;color:var(--text3);display:block}
+.workflow-toolbar{display:flex;gap:8px;padding:8px 16px;background:var(--card);border-bottom:1px solid var(--border);align-items:center;flex-shrink:0}
+.workflow-toolbar select{padding:8px 12px;border:2px solid var(--border);border-radius:8px;font-size:13px;background:var(--bg);font-family:inherit}
+.workflow-canvas-wrap{flex:1;overflow:hidden;position:relative;background:var(--bg);background-image:radial-gradient(circle,var(--border) 1px,transparent 1px);background-size:24px 24px}
+.workflow-canvas{position:absolute;top:0;left:0;width:4000px;height:4000px;transform-origin:0 0}
+.workflow-svg{position:absolute;top:0;left:0;width:4000px;height:4000px;pointer-events:none;z-index:1}
+.workflow-svg line{stroke:var(--primary);stroke-width:2;stroke-linecap:round}
+.workflow-svg line.active{stroke:#A5B4FC;stroke-width:3}
+.workflow-svg .conn-hit{stroke:transparent;stroke-width:12;pointer-events:stroke;cursor:pointer}
+
+/* Workflow Node */
+.wf-node{position:absolute;background:var(--card);border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,0.1);min-width:220px;max-width:300px;z-index:10;border:2px solid var(--border);transition:box-shadow 0.15s}
+.wf-node:hover{box-shadow:0 6px 24px rgba(0,0,0,0.15)}
+.wf-node.selected{border-color:var(--primary);box-shadow:0 0 0 3px rgba(99,102,241,0.15)}
+.wf-node-header{display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:10px 10px 0 0;font-size:13px;font-weight:700;cursor:grab;user-select:none}
+.wf-node-header:active{cursor:grabbing}
+.wf-node-header.prompt-hdr{background:#EEF2FF;color:#4F46E5}
+.wf-node-header.image-hdr{background:#ECFDF5;color:#059669}
+.wf-node-header.video-hdr{background:#FEF3C7;color:#D97706}
+.wf-node-header.review-hdr{background:#F3E8FF;color:#7C3AED}
+.wf-node-header.starter-hdr{background:#FFF7ED;color:#EA580C}
+.wf-node-delete{width:24px;height:24px;border-radius:50%;border:none;background:transparent;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;margin-left:auto;transition:var(--transition);color:var(--text3)}
+.wf-node-delete:hover{background:var(--danger-light);color:var(--danger)}
+.wf-node-body{padding:10px 14px 14px;font-size:13px}
+.wf-node-body select,.wf-node-body textarea,.wf-node-body input{width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:12px;font-family:inherit;background:var(--bg);color:var(--text);margin-bottom:6px;resize:vertical}
+.wf-node-body select:focus,.wf-node-body textarea:focus,.wf-node-body input:focus{outline:none;border-color:var(--primary)}
+.wf-node-body textarea{min-height:50px;font-size:11px}
+
+/* Ports */
+.wf-ports{position:absolute;display:flex;flex-direction:column;gap:6px}
+.wf-ports.input{left:-8px;top:50%;transform:translateY(-50%)}
+.wf-ports.output{right:-8px;top:50%;transform:translateY(-50%)}
+.wf-port{width:16px;height:16px;border-radius:50%;border:2.5px solid var(--primary);background:var(--card);cursor:crosshair;transition:var(--transition);position:relative;z-index:20}
+.wf-port:hover{background:var(--primary);transform:scale(1.3)}
+.wf-port.dragging{background:var(--primary);box-shadow:0 0 0 4px rgba(99,102,241,0.25)}
+.wf-port.input-port{border-color:var(--text3)}
+.wf-port.input-port:hover{border-color:var(--primary);background:var(--primary)}
+
+/* Drag line (temporary connection being drawn) */
+.drag-line{position:fixed;pointer-events:none;z-index:9999}
+.drag-line svg{overflow:visible}
+
+/* Workflow empty state */
+.wf-empty{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;color:var(--text3);pointer-events:none}
+.wf-empty .empty-icon{font-size:56px;margin-bottom:12px}
+.wf-empty h3{font-size:16px;color:var(--text2);margin-bottom:4px}
+.wf-empty p{font-size:13px}
+
+/* Page: Memo */
+.memo-layout{display:flex;flex:1;overflow:hidden}
+.memo-sidebar{width:240px;flex-shrink:0;background:var(--card);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.memo-sidebar-header{padding:12px 16px;border-bottom:1px solid var(--border)}
+.memo-list{flex:1;overflow-y:auto;padding:8px}
+.memo-item{padding:10px 12px;border-radius:8px;cursor:pointer;font-size:13px;margin-bottom:4px;transition:var(--transition);display:flex;align-items:center;justify-content:space-between}
+.memo-item:hover{background:var(--bg)}
+.memo-item.active{background:var(--primary-light);color:var(--primary);font-weight:600}
+.memo-item .memo-title{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.memo-item .memo-del{width:22px;height:22px;border-radius:50%;border:none;background:transparent;cursor:pointer;font-size:12px;color:var(--text3);flex-shrink:0;display:none}
+.memo-item:hover .memo-del{display:flex;align-items:center;justify-content:center}
+.memo-item .memo-del:hover{background:var(--danger-light);color:var(--danger)}
+.memo-editor{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.memo-editor-header{padding:12px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.memo-editor-header input{border:none;font-size:16px;font-weight:700;font-family:inherit;flex:1;background:transparent;color:var(--text);outline:none}
+.memo-editor textarea{flex:1;border:none;padding:20px;font-size:14px;font-family:inherit;resize:none;background:transparent;color:var(--text);line-height:1.8;outline:none}
+.memo-editor .memo-meta{font-size:11px;color:var(--text3);padding:8px 20px}
+
+/* Responsive */
+@media(max-width:768px){
+  .app-body{flex-direction:column}
+  .sidebar{width:100%;max-height:200px;border-right:none;border-bottom:1px solid var(--border)}
+  .sidebar.hidden{max-height:0}
+  .tmpl-layout{flex-direction:column}
+  .tmpl-config{width:100%;max-height:50vh}
+  .lib-header{flex-wrap:wrap;padding:12px 16px}
+  .prompts-grid{grid-template-columns:1fr}
+  .log-summary,.log-toolbar{padding-left:16px;padding-right:16px}
+  .detail-panel{width:100%}
+  .modal{max-width:100vw;border-radius:16px}
+  .nav-tab{padding:0 12px;font-size:13px}
+  .form-row,.form-row-3{grid-template-columns:1fr}
+  .dim-grid{grid-template-columns:1fr}
+  .workflow-panel{width:120px;padding:8px}
+  .workflow-node-btn{padding:8px;font-size:11px;gap:4px}
+  .workflow-node-btn .wn-icon{font-size:16px}
+  .workflow-node-btn .wn-hint{display:none}
+  .wf-node{min-width:160px;max-width:220px}
+  .memo-sidebar{width:120px}
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- Top Navigation -->
+  <nav class="topnav">
+    <div class="logo-area">
+      <svg viewBox="0 0 28 28" fill="none"><rect x="2" y="4" width="24" height="20" rx="3" stroke="#6366F1" stroke-width="2.5"/><line x1="8" y1="10" x2="20" y2="10" stroke="#6366F1" stroke-width="2" stroke-linecap="round"/><line x1="8" y1="14" x2="16" y2="14" stroke="#6366F1" stroke-width="2" stroke-linecap="round"/></svg>
+      提示词库
+    </div>
+    <div class="nav-tabs">
+      <button class="nav-tab active" data-page="library" onclick="switchPage('library')">📚 提示词库 <span class="badge" id="libCount">0</span></button>
+      <button class="nav-tab" data-page="template" onclick="switchPage('template')">🧩 模板引擎</button>
+      <button class="nav-tab" data-page="workflow" onclick="switchPage('workflow')">🔀 工作流 <span class="badge" id="wfCount">0</span></button>
+      <button class="nav-tab" data-page="memo" onclick="switchPage('memo')">📝 备忘录 <span class="badge" id="memoCount">0</span></button>
+      <button class="nav-tab" data-page="log" onclick="switchPage('log')">📊 生成日志 <span class="badge" id="logCount">0</span></button>
+    </div>
+    <div style="flex:1"></div>
+    <span id="userStatus" style="font-size:11px;color:var(--text3);margin-right:8px"></span>
+    <button class="btn btn-outline btn-xs" id="loginBtn" onclick="loginWithEmail()" style="margin-right:8px">🔑 登录</button>
+    <button class="btn btn-outline btn-xs" id="logoutBtn" onclick="logoutUser()" style="display:none;margin-right:8px">退出</button>
+    <span id="mediaDirStatus" style="font-size:11px;color:var(--danger);margin-right:8px;display:none">⚠ 未选择存储目录</span>
+    <button class="btn btn-outline btn-sm" onclick="selectMediaDir()" style="margin-right:4px" title="选择媒体存储目录">📁</button>
+    <button class="btn btn-outline btn-sm" onclick="exportData()" style="margin-right:4px" title="导出 JSON（元数据）">📤</button>
+    <button class="btn btn-outline btn-sm" onclick="exportDataFull()" style="margin-right:4px" title="完整导出（含图片）">📦</button>
+    <button class="btn btn-outline btn-sm" onclick="document.getElementById('importFile').click()" style="margin-right:4px" title="导入 JSON">📥</button>
+    <button class="btn btn-outline btn-sm" onclick="exportFeishu()" style="margin-right:4px" title="导出飞书文档">📄 文档</button>
+    <button class="btn btn-outline btn-sm" onclick="exportBitable()" title="导出多维表格 CSV">📊 多维</button>
+    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+  </nav>
+
+  <div class="app-body">
+    <!-- Sidebar (only for library page) -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-body">
+        <button class="btn btn-primary" onclick="openNewModal()" style="margin-bottom:20px">＋ 新建提示词</button>
+        <div class="filter-group"><div class="filter-label">📂 类型筛选</div><div class="filter-chips" id="mediaTypeFilter">
+          <span class="chip" data-mtype="image">🖼️ 生图</span><span class="chip" data-mtype="video">🎬 生视频</span>
+        </div></div>
+        <div class="filter-group"><div class="filter-label">🔧 工具筛选</div><div class="filter-chips" id="toolFilter"></div></div>
+        <div class="filter-group"><div class="filter-label">🎯 场景筛选</div><div class="filter-chips" id="scenarioFilter"></div></div>
+        <div class="filter-group"><div class="filter-label">⭐ 评分筛选</div><div class="filter-chips" id="ratingFilter">
+          <span class="chip" data-rating="5">⭐⭐⭐⭐⭐</span><span class="chip" data-rating="4">⭐⭐⭐⭐</span><span class="chip" data-rating="3">⭐⭐⭐+</span>
+        </div></div>
+        <div class="filter-group"><div class="filter-label">🏷️ 标签</div><div class="filter-chips" id="tagFilter"></div></div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main">
+      <!-- PAGE 1: Library -->
+      <div class="page active" id="pageLibrary">
+        <div class="lib-header">
+          <div class="search-wrap"><span class="search-icon">🔍</span><input type="text" id="searchInput" placeholder="搜索提示词…" oninput="onSearch()"></div>
+          <select class="sort-select" id="sortSelect" onchange="onSort()">
+            <option value="newest">最新</option><option value="oldest">最早</option><option value="top">评分最高</option><option value="used">使用最多</option>
+          </select>
+          <div class="view-toggle" id="viewToggle">
+            <button data-view="grid" class="active" onclick="setView('grid')">⊞</button>
+            <button data-view="list" onclick="setView('list')">☰</button>
+          </div>
+        </div>
+        <div class="stats-bar" id="statsBar"></div>
+        <div class="prompts-scroll">
+          <div class="prompts-grid" id="promptsGrid"></div>
+          <div class="empty-state" id="emptyState"><div class="empty-icon">📝</div><h3>还没有保存提示词</h3><p>点击「新建提示词」开始记录</p></div>
+        </div>
+      </div>
+
+      <!-- PAGE 2: Template Engine -->
+      <div class="page" id="pageTemplate">
+        <div class="tmpl-layout">
+          <div class="tmpl-config">
+            <h3>🧩 模板引擎 · 填空式生成</h3>
+            <div class="form-group"><label class="form-label">快速预设</label>
+              <div class="tmpl-presets" id="tmplPresets">
+                <button class="tmpl-preset active" data-preset="pet_product" onclick="applyPreset('pet_product')">🐾 宠物产品</button>
+                <button class="tmpl-preset" data-preset="pain_point" onclick="applyPreset('pain_point')">💔 痛点展示</button>
+                <button class="tmpl-preset" data-preset="trending" onclick="applyPreset('trending')">🔥 爆款带货</button>
+                <button class="tmpl-preset" data-preset="portrait" onclick="applyPreset('portrait')">📸 宠物肖像</button>
+                <button class="tmpl-preset" data-preset="scene" onclick="applyPreset('scene')">🏠 使用场景</button>
+              </div>
+            </div>
+            <div class="form-group"><label class="form-label">宠物/主体类型</label><select class="form-select" id="tpPetType" onchange="onTmplChange()"><option value="">请选择</option></select></div>
+            <div class="form-group"><label class="form-label">品种（可选）</label><select class="form-select" id="tpBreed" onchange="onTmplChange()"><option value="">不限品种</option></select></div>
+            <div class="form-group"><label class="form-label">使用场景</label><select class="form-select" id="tpScenario" onchange="onTmplChange()"><option value="">请选择</option></select></div>
+            <div class="form-group"><label class="form-label">风格</label><select class="form-select" id="tpStyle" onchange="onTmplChange()"><option value="">请选择</option></select></div>
+            <div class="form-row">
+              <div class="form-group"><label class="form-label">光线</label><select class="form-select" id="tpLight" onchange="onTmplChange()"><option value="">请选择</option></select></div>
+              <div class="form-group"><label class="form-label">构图</label><select class="form-select" id="tpComp" onchange="onTmplChange()"><option value="">请选择</option></select></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label class="form-label">画质</label><select class="form-select" id="tpQuality" onchange="onTmplChange()"><option value="">请选择</option></select></div>
+              <div class="form-group"><label class="form-label">推荐工具</label><select class="form-select" id="tpTool" onchange="onTmplChange()"><option value="">请选择</option></select></div>
+            </div>
+            <div class="form-group"><label class="form-label">产品名称 <span class="hint">（可选，会自动融入提示词）</span></label><input class="form-input" id="tpProduct" placeholder="如：三层猫抓桶" oninput="onTmplChange()"></div>
+            <div class="form-group"><label class="form-label">额外补充描述</label><textarea class="form-textarea" id="tpExtra" placeholder="其他想加的细节…" oninput="onTmplChange()" style="min-height:60px"></textarea></div>
+            <div class="form-group"><label class="form-label">不想要什么（负面词）</label><input class="form-input" id="tpNegative" placeholder="如：不要卡通，不要模糊" oninput="onTmplChange()"></div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-primary" onclick="saveTemplateToLibrary()" style="flex:1">💾 保存到提示词库</button>
+              <button class="btn btn-outline btn-sm" onclick="copyTemplatePrompt()">📋 复制</button>
+            </div>
+          </div>
+          <div class="tmpl-preview">
+            <h3>👁️ 实时预览</h3>
+            <div class="tmpl-prompt-box" id="tmplFullPrompt">选择左侧参数，这里会实时显示拼接好的完整提示词…</div>
+            <h3 style="margin-top:16px">🧩 八维结构</h3>
+            <div class="tmpl-dims-box" id="tmplDims"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE 3: Workflow Canvas -->
+      <div class="page" id="pageWorkflow">
+        <div class="workflow-layout">
+          <div class="workflow-panel" id="wfPanel">
+            <h4>🧩 节点类型</h4>
+            <button class="workflow-node-btn" onclick="addWorkflowNode('starter')">
+              <span class="wn-icon">🎯</span><span class="wn-label">开始设定<span class="wn-hint">描述需求，反推提示词</span></span>
+            </button>
+            <button class="workflow-node-btn" onclick="addWorkflowNode('prompt')">
+              <span class="wn-icon">📝</span><span class="wn-label">提示词<span class="wn-hint">选择或编写提示词</span></span>
+            </button>
+            <button class="workflow-node-btn" onclick="addWorkflowNode('image_gen')">
+              <span class="wn-icon">🖼️</span><span class="wn-label">AI 生图<span class="wn-hint">配置生图工具和参数</span></span>
+            </button>
+            <button class="workflow-node-btn" onclick="addWorkflowNode('video_gen')">
+              <span class="wn-icon">🎬</span><span class="wn-label">AI 生视频<span class="wn-hint">配置生视频工具和参数</span></span>
+            </button>
+            <button class="workflow-node-btn" onclick="addWorkflowNode('review')">
+              <span class="wn-icon">✅</span><span class="wn-label">审核/记录<span class="wn-hint">标记结果、写备注</span></span>
+            </button>
+            <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:4px">
+              <h4 style="margin-bottom:8px">💡 提示</h4>
+              <p style="font-size:11px;color:var(--text3);line-height:1.5">从 <strong>输出端口</strong>（右）拖线到 <strong>输入端口</strong>（左）建立连接。双击连线可删除。</p>
+            </div>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+            <div class="workflow-toolbar">
+              <select id="wfSelector" onchange="switchWorkflow(this.value)" style="flex:1;max-width:300px"><option value="">＋ 新建工作流</option></select>
+              <input id="wfNameInput" placeholder="工作流名称…" style="padding:8px 12px;border:2px solid var(--border);border-radius:8px;font-size:13px;background:var(--bg);font-family:inherit;width:200px" onchange="renameCurrentWorkflow()">
+              <button class="btn btn-outline btn-xs" onclick="newWorkflow()">＋ 新建</button>
+              <button class="btn btn-outline btn-xs" onclick="saveCurrentWorkflow()">💾 保存</button>
+              <button class="btn btn-danger btn-xs" onclick="deleteCurrentWorkflow()">🗑</button>
+              <span style="font-size:12px;color:var(--text3);margin-left:auto" id="wfZoomLabel">100%</span>
+            </div>
+            <div class="workflow-canvas-wrap" id="wfCanvasWrap"
+                 onmousedown="onCanvasMouseDown(event)" onmousemove="onCanvasMouseMove(event)" onmouseup="onCanvasMouseUp(event)" onwheel="onCanvasWheel(event)">
+              <div class="workflow-canvas" id="wfCanvas">
+                <svg class="workflow-svg" id="wfSvg"></svg>
+                <div class="wf-empty" id="wfEmpty">
+                  <div class="empty-icon">🔀</div>
+                  <h3>空白工作流</h3>
+                  <p>从左侧面板添加节点开始构建流程</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE 4: Memo -->
+      <div class="page" id="pageMemo">
+        <div class="memo-layout">
+          <div class="memo-sidebar">
+            <div class="memo-sidebar-header"><button class="btn btn-primary btn-sm" onclick="newMemo()" style="width:100%">＋ 新建笔记</button></div>
+            <div class="memo-list" id="memoList"></div>
+          </div>
+          <div class="memo-editor" id="memoEditor">
+            <div class="memo-editor-header"><span>📝</span><input id="memoTitleInput" placeholder="笔记标题…" oninput="onMemoChange()"></div>
+            <textarea id="memoTextarea" placeholder="开始写笔记…" oninput="onMemoChange()"></textarea>
+            <div class="memo-meta" id="memoMeta"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE 5: Generation Log -->
+      <div class="page" id="pageLog">
+        <div class="log-layout">
+          <div class="log-summary" id="logSummary"></div>
+          <div class="log-toolbar">
+            <select id="logToolFilter" onchange="renderLog()"><option value="">🔧 全部工具</option></select>
+            <select id="logResultFilter" onchange="renderLog()"><option value="">✅ 全部结果</option><option value="success">成功</option><option value="partial">部分可用</option><option value="fail">失败</option></select>
+            <button class="btn btn-primary btn-sm" onclick="openLogModal()">＋ 记一笔</button>
+            <button class="btn btn-outline btn-sm" onclick="exportLogsCSV()">📥 导出 CSV</button>
+          </div>
+          <div class="log-scroll">
+            <table class="log-table">
+              <thead><tr><th>日期</th><th>工具</th><th>提示词</th><th>成本</th><th>结果</th><th>生成/可用</th><th>备注</th><th></th></tr></thead>
+              <tbody id="logTbody"></tbody>
+            </table>
+            <div class="empty-state" id="logEmpty"><div class="empty-icon">📊</div><h3>还没有生成记录</h3><p>点击「记一笔」开始追踪每次 AI 生成的成本和效果</p></div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- Prompt Edit Modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal" id="modal">
+    <div class="modal-header"><h2 id="modalTitle">新建提示词</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="modal-body">
+      <div class="modal-tabs">
+        <button class="modal-tab active" data-tab="structured" onclick="switchModalTab('structured')">📋 结构化输入</button>
+        <button class="modal-tab" data-tab="free" onclick="switchModalTab('free')">✍️ 自由输入 + AI 解析</button>
+      </div>
+      <div id="tabStructured">
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">标题 *</label><input class="form-input" id="sTitle" placeholder="如：多猫互动-猫抓桶场景"></div>
+          <div class="form-group"><label class="form-label">使用工具 *</label><select class="form-select" id="sTool"><option value="">请选择</option><option value="GPT-image2">GPT-image2 (¥0.06/张)</option><option value="即梦">即梦 (¥0.17/张)</option><option value="Midjourney">Midjourney (¥0.14/张)</option><option value="Nano Banana Pro">Nano Banana Pro (¥0.22/张)</option><option value="Sora2">Sora2 (¥0.4-1.2/条)</option><option value="Omni">Omni (产品不变形)</option><option value="Seedance2.0 PC">Seedance2.0 (PC端)</option><option value="Seedance2.0 App">Seedance2.0 (App端)</option><option value="其他">其他工具</option></select></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">类型</label><select class="form-select" id="sMediaType"><option value="">不限</option><option value="image">🖼️ 生图提示词</option><option value="video">🎬 生视频提示词</option></select></div>
+          <div class="form-group"><label class="form-label">使用场景</label><select class="form-select" id="sScenario"><option value="">请选择</option><option value="静物延申">静物延申</option><option value="使用图延申">使用图延申</option><option value="多猫互动">多猫互动</option><option value="图生视频">图生视频</option><option value="真人替换">真人替换</option><option value="爆款模仿">爆款模仿</option><option value="产品痛点">产品痛点</option><option value="直播切片">直播切片</option><option value="其他">其他场景</option></select></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group" style="grid-column:1/-1"><label class="form-label">标签 <span class="hint">（逗号分隔）</span></label><input class="form-input" id="sTags" placeholder="如：宠物, 猫, 实拍+AI"></div>
+        </div>
+        <div style="text-align:center;font-size:13px;color:var(--primary);font-weight:700;margin:16px 0 8px">── 八维提示词结构 ──</div>
+        <div class="dim-grid">
+          <div class="form-group dim-field"><label class="form-label">1. 主体</label><textarea class="form-textarea" id="dSubject" placeholder="画面的核心主体…"></textarea></div>
+          <div class="form-group dim-field"><label class="form-label">2. 动作</label><textarea class="form-textarea" id="dAction" placeholder="主体的动作/姿态…"></textarea></div>
+          <div class="form-group dim-field"><label class="form-label">3. 环境</label><textarea class="form-textarea" id="dEnvironment" placeholder="场景/环境/背景…"></textarea></div>
+          <div class="form-group dim-field"><label class="form-label">4. 光线</label><textarea class="form-textarea" id="dLighting" placeholder="光线条件…"></textarea></div>
+          <div class="form-group dim-field"><label class="form-label">5. 构图</label><textarea class="form-textarea" id="dComposition" placeholder="构图/视角/镜头…"></textarea></div>
+          <div class="form-group dim-field"><label class="form-label">6. 风格</label><textarea class="form-textarea" id="dStyle" placeholder="艺术风格/参考…"></textarea></div>
+          <div class="form-group dim-field"><label class="form-label">7. 画质</label><textarea class="form-textarea" id="dQuality" placeholder="画质相关关键词…"></textarea></div>
+          <div class="form-group dim-field"><label class="form-label">8. 负面词</label><textarea class="form-textarea" id="dNegative" placeholder="不要什么…"></textarea></div>
+        </div>
+        <!-- Attachment section -->
+        <div style="margin:16px 0;padding:16px 0;border-top:1px solid var(--border)">
+          <label class="form-label">📎 附件（图片/视频）<span class="hint"> — 图片≤10MB，视频≤100MB，最多20个</span></label>
+          <div id="attachPreview" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px"></div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <label class="btn btn-outline btn-sm" style="cursor:pointer;margin:0">
+              📁 选择文件
+              <input type="file" id="attachInput" accept="image/jpeg,image/png,image/gif,image/webp,image/avif,image/svg+xml,video/mp4,video/webm,video/quicktime,video/x-msvideo" multiple
+                     style="display:none" onchange="onAttachFilesSelected(event)">
+            </label>
+            <span style="font-size:12px;color:var(--text3)" id="attachHint">支持 JPG/PNG/GIF/WebP/MP4/WebM/MOV</span>
+          </div>
+        </div>
+        <div class="form-group"><label class="form-label">生成效果备注</label><textarea class="form-textarea" id="sResult" placeholder="记录生成效果、哪些维度需要调整…"></textarea></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">评分</label><select class="form-select" id="sRating"><option value="5">⭐⭐⭐⭐⭐ 完美</option><option value="4">⭐⭐⭐⭐ 很好</option><option value="3">⭐⭐⭐ 一般</option><option value="2">⭐⭐ 较差</option><option value="1">⭐ 失败</option></select></div>
+          <div class="form-group"><label class="form-label">单次成本（元）</label><input class="form-input" id="sCost" type="number" step="0.01" placeholder="如：0.06" min="0"></div>
+        </div>
+      </div>
+      <div id="tabFree" style="display:none">
+        <div class="form-group"><label class="form-label">粘贴完整提示词</label><textarea class="form-textarea" id="freePrompt" style="min-height:180px" placeholder="粘贴完整的 AI 生图/生视频提示词…"></textarea></div>
+        <button class="btn btn-primary" onclick="aiParsePrompt()" style="margin-bottom:8px">🤖 AI 智能解析为八维结构</button>
+        <div class="ai-loading" id="aiLoading"><span class="ai-dot"></span><span class="ai-dot"></span><span class="ai-dot"></span>AI 正在解析提示词结构…</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:8px">AI 自动识别八维结构并回填到结构化表单，可手动调整。</div>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
+        <button class="btn btn-outline" onclick="closeModal()">取消</button>
+        <button class="btn btn-primary" style="width:auto;padding:12px 32px" onclick="savePrompt()">💾 保存提示词</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Log Entry Modal -->
+<div class="modal-overlay" id="logModalOverlay">
+  <div class="modal small" id="logModal">
+    <div class="modal-header"><h2 id="logModalTitle">记录生成</h2><button class="modal-close" onclick="closeLogModal()">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">关联提示词 <span class="hint">（可选）</span></label><select class="form-select" id="logPromptId"><option value="">不关联</option></select></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">使用工具 *</label><select class="form-select" id="logTool"><option value="">请选择</option><option value="GPT-image2">GPT-image2</option><option value="即梦">即梦</option><option value="Midjourney">Midjourney</option><option value="Nano Banana Pro">Nano Banana Pro</option><option value="Sora2">Sora2</option><option value="Omni">Omni</option><option value="Seedance2.0 PC">Seedance2.0 PC</option><option value="Seedance2.0 App">Seedance2.0 App</option><option value="其他">其他</option></select></div>
+        <div class="form-group"><label class="form-label">花费（元）*</label><input class="form-input" id="logCost" type="number" step="0.01" placeholder="0.06" min="0"></div>
+      </div>
+      <div class="form-group"><label class="form-label">使用的提示词文本</label><textarea class="form-textarea" id="logPromptText" placeholder="粘贴实际使用的提示词…" style="min-height:80px"></textarea></div>
+      <div class="form-row-3">
+        <div class="form-group"><label class="form-label">生成张数</label><input class="form-input" id="logImageCount" type="number" placeholder="4" min="0" value="4"></div>
+        <div class="form-group"><label class="form-label">可用张数</label><input class="form-input" id="logUsableCount" type="number" placeholder="3" min="0" value="3"></div>
+        <div class="form-group"><label class="form-label">结果</label><select class="form-select" id="logResult"><option value="success">✅ 成功</option><option value="partial">⚠️ 部分可用</option><option value="fail">❌ 失败</option></select></div>
+      </div>
+      <div class="form-group"><label class="form-label">备注</label><input class="form-input" id="logNotes" placeholder="效果描述、问题原因…"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
+        <button class="btn btn-outline" onclick="closeLogModal()">取消</button>
+        <button class="btn btn-primary" style="width:auto;padding:12px 32px" onclick="saveLog()">💾 保存记录</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Detail Panel -->
+<div class="detail-overlay" id="detailOverlay" onclick="closeDetail()"></div>
+<div class="detail-panel" id="detailPanel">
+  <div class="detail-panel-header"><h3 id="detailTitle">提示词详情</h3><button class="modal-close" onclick="closeDetail()">✕</button></div>
+  <div class="detail-panel-body" id="detailBody"></div>
+  <div class="detail-panel-footer">
+    <button class="btn btn-outline btn-sm" id="detailCopyBtn">📋 复制完整提示词</button>
+    <button class="btn btn-outline btn-sm" id="detailEditBtn">✏️ 编辑</button>
+    <button class="btn btn-outline btn-sm" id="detailLogBtn" style="color:var(--success);border-color:var(--success)">📊 记录生成</button>
+    <button class="btn btn-danger btn-sm" id="detailDeleteBtn">🗑 删除</button>
+  </div>
+</div>
+
+<!-- Confirm Dialog -->
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-box"><h3 id="confirmTitle">确认</h3><p id="confirmMsg"></p>
+    <div class="confirm-actions"><button class="btn btn-outline btn-sm" onclick="closeConfirm()">取消</button><button class="btn btn-danger btn-sm" id="confirmOkBtn">确认</button></div>
+  </div>
+</div>
+
+<!-- Feishu Export Modal -->
+<div class="modal-overlay" id="feishuModalOverlay">
+  <div class="modal" id="feishuModal" style="width:800px">
+    <div class="modal-header"><h2>📄 飞书文档格式</h2><button class="modal-close" onclick="closeFeishuModal()">✕</button></div>
+    <div class="modal-body">
+      <div style="margin-bottom:12px;display:flex;gap:8px;align-items:center">
+        <span style="font-size:13px;color:var(--text2)">将下方内容复制粘贴到飞书文档即可，格式已适配</span>
+        <button class="btn btn-primary btn-sm" onclick="copyFeishuContent()" style="margin-left:auto">📋 一键复制</button>
+      </div>
+      <div id="feishuContent" style="background:var(--bg);border-radius:12px;padding:20px;max-height:60vh;overflow-y:auto;font-size:14px;line-height:1.7;white-space:pre-wrap;font-family:inherit;color:var(--text)"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Login Modal -->
+<div class="modal-overlay" id="loginModalOverlay">
+  <div class="modal small" id="loginModal">
+    <div class="modal-header"><h2>🔑 登录提示词库</h2><button class="modal-close" onclick="closeLoginModal()">✕</button></div>
+    <div class="modal-body">
+      <div style="margin-bottom:12px"><label class="form-label">邮箱地址</label><input class="form-input" id="loginEmail" type="email" placeholder="your@email.com"></div>
+      <div style="margin-bottom:12px"><label class="form-label">密码</label><input class="form-input" id="loginPassword" type="password" placeholder="输入密码"></div>
+      <div id="loginMsg" style="font-size:12px;color:var(--text3);margin-bottom:12px">首次自动注册，之后用密码即可</div>
+      <button class="btn btn-primary" style="width:100%;margin-bottom:8px" onclick="doPasswordLogin()">登录</button>
+      <button class="btn btn-outline btn-sm" style="width:100%;font-size:11px" onclick="doEmailLogin()">发送邮箱登录链接</button>
+    </div>
+  </div>
+</div>
+
+<!-- Lightbox -->
+<div class="lightbox-overlay" id="lightboxOverlay">
+  <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+  <button class="lightbox-prev" id="lightboxPrev" onclick="lightboxNav(-1)">‹</button>
+  <button class="lightbox-next" id="lightboxNext" onclick="lightboxNav(1)">›</button>
+  <div class="lightbox-content" id="lightboxContent"></div>
+  <div class="lightbox-info" id="lightboxInfo"></div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ====== SUPABASE REST API ======
+const SB_URL = 'https://midkfhmgmaoxmyrhiopz.supabase.co'
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1pZGtmaG1nbWFveG15cmhpb3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0NDkxMDIsImV4cCI6MjA5ODAyNTEwMn0.SR2OIwOVDPx77fhWL50LnHVvD29RrYi1W3aesGOgOYQ'
+let _sbUser = null
+let _sbToken = null
+
+async function sbAPI(path, options = {}) {
+  const headers = {
+    'apikey': SB_KEY,
+    'Content-Type': 'application/json',
+    ...(options.headers || {})
+  }
+  if (_sbToken) headers['Authorization'] = 'Bearer ' + _sbToken
+  const res = await fetch(SB_URL + path, { ...options, headers })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.message || err.msg || 'HTTP ' + res.status)
+  }
+  const text = await res.text()
+  return text ? JSON.parse(text) : null
+}
+
+async function sbSignIn(email, password) {
+  const data = await sbAPI('/auth/v1/token?grant_type=password', {
+    method: 'POST', body: JSON.stringify({ email, password })
+  })
+  _sbToken = data.access_token
+  _sbUser = data.user
+  localStorage.setItem('_sb_token', _sbToken)
+  localStorage.setItem('_sb_user', JSON.stringify(_sbUser))
+  updateAuthUI()
+}
+
+async function sbSignUp(email, password) {
+  await sbAPI('/auth/v1/signup', {
+    method: 'POST', body: JSON.stringify({ email, password })
+  })
+  showToast('注册成功！请重新输入密码登录')
+}
+
+async function sbSignOut() {
+  try { await sbAPI('/auth/v1/logout', { method: 'POST' }) } catch(e) {}
+  _sbToken = null; _sbUser = null
+  localStorage.removeItem('_sb_token'); localStorage.removeItem('_sb_user')
+  updateAuthUI()
+}
+
+async function sbFetch(table) {
+  return await sbAPI('/rest/v1/' + table + '?select=*&order=created_at.desc')
+}
+
+async function sbSave(table, row) {
+  const db = {}
+  const map = { usageCount:'usage_count', mediaType:'media_type', promptId:'prompt_id', promptText:'prompt_text',
+    imageCount:'image_count', usableCount:'usable_count', createdAt:'created_at', updatedAt:'updated_at' }
+  for (const [k, v] of Object.entries(row)) {
+    if (v === undefined || v === null) continue
+    db[map[k] || k] = v
+  }
+  if (row.id) {
+    const check = await sbAPI('/rest/v1/' + table + '?id=eq.' + encodeURIComponent(row.id) + '&select=id').catch(() => [])
+    if (check && check.length > 0) {
+      return await sbAPI('/rest/v1/' + table + '?id=eq.' + encodeURIComponent(row.id), { method: 'PATCH', body: JSON.stringify(db) })
+    }
+  }
+  return await sbAPI('/rest/v1/' + table, { method: 'POST', body: JSON.stringify(db) })
+}
+
+async function sbDel(table, id) {
+  return await sbAPI('/rest/v1/' + table + '?id=eq.' + encodeURIComponent(id), { method: 'DELETE' })
+}
+
+// ====== CONSTANTS ======
+const STORAGE_KEY = 'prompt_library_v2'
+const LOGS_KEY = 'generation_logs_v1'
+const API_KEY = 'ark-31739f6b-053f-440f-a9d2-092fb2b88307-2c854'
+const CHAT_API = 'https://ark.cn-beijing.volces.com/api/v3/chat/completions'
+const VISION_MODEL = 'ep-20260607231451-mjjpc'
+
+const TOOLS = ['GPT-image2','即梦','Midjourney','Nano Banana Pro','Sora2','Omni','Seedance2.0 PC','Seedance2.0 App','其他']
+const SCENARIOS = ['静物延申','使用图延申','多猫互动','图生视频','真人替换','爆款模仿','产品痛点','直播切片','其他']
+const TOOL_CLASS = {'GPT-image2':'tool-gpt','即梦':'tool-jimeng','Midjourney':'tool-mj','Nano Banana Pro':'tool-nano','Sora2':'tool-sora','Omni':'tool-omni','Seedance2.0 PC':'tool-seedance','Seedance2.0 App':'tool-seedance','其他':''}
+const DIM_LABELS = {subject:'主体',action:'动作',environment:'环境',lighting:'光线',composition:'构图',style:'风格',quality:'画质',negative:'负面词'}
+
+// ====== TEMPLATE DATA ======
+const TPL_PET_TYPES = [
+  {value:'cat',label:'🐱 猫',breeds:['英短蓝猫','美短','布偶猫','橘猫','白猫','暹罗猫','金渐层','银渐层','加菲猫','缅因猫']},
+  {value:'dog',label:'🐶 狗',breeds:['金毛','柯基','泰迪','柴犬','哈士奇','法斗','比熊','边牧','萨摩耶','博美']},
+  {value:'product',label:'📦 产品/静物',breeds:[]},
+  {value:'other',label:'🔄 其他动物/人物',breeds:[]}
+]
+const TPL_SCENARIOS = [
+  {value:'still_life',label:'静物延申 — 产品摆拍+AI延申场景',subject:'[产品]摆放在自然场景中',action:'宠物围绕产品互动玩耍',env:'温馨家居环境，自然摆放'},
+  {value:'multi_pet',label:'多猫互动 — 多只宠物使用产品',subject:'多只[品种]在[产品]周围',action:'互相追逐玩耍，自然互动',env:'宠物用品场景，猫爬架/猫抓板'},
+  {value:'pain_point',label:'产品痛点 — 展示问题场景',subject:'[产品]使用前后的对比效果',action:'突出问题的严重性，展示解决方案',env:'真实家庭环境，自然不做作'},
+  {value:'trending',label:'爆款模仿 — 带货视频风格',subject:'[产品]作为画面焦点',action:'宠物对产品产生自然反应，抓眼球',env:'明亮整洁的展示环境，温暖木色调'},
+  {value:'portrait',label:'宠物肖像 — 萌宠特写',subject:'一只可爱的[品种]',action:'面向镜头，表情可爱，自然姿态',env:'纯色简约背景或柔和虚化背景'}
+]
+const TPL_STYLES = [
+  {value:'real',label:'📱 真实实拍风',text:'真实手机实拍质感，自然不刻意'},
+  {value:'pixar',label:'🎬 Pixar 3D动画',text:'Pixar Disney 3D动画渲染风格，可爱圆润'},
+  {value:'chinese',label:'🏮 国风/新中式',text:'中国风水墨质感，雅致东方美学'},
+  {value:'minimal',label:'⚪ 极简白底',text:'纯白背景#FFFFFF，极简干净，电商产品图风格'},
+  {value:'warm',label:'🏠 温馨家居',text:'温暖家居氛围，自然生活感'},
+  {value:'studio',label:'📸 影棚质感',text:'专业影棚灯光，商业摄影质感'},
+  {value:'cyberpunk',label:'🤖 赛博朋克',text:'霓虹灯效，未来科技感'},
+  {value:'vintage',label:'📷 复古胶片',text:'胶片颗粒感，怀旧暖调'}
+]
+const TPL_LIGHTS = [
+  {value:'natural_soft',label:'☀️ 柔和自然光',text:'柔和自然光，窗边散射光'},
+  {value:'natural_bright',label:'🔆 明亮日光',text:'明亮日光，通透清晰'},
+  {value:'warm',label:'🕯️ 暖调光线',text:'暖色调光线，金色光泽'},
+  {value:'studio',label:'💡 影棚布光',text:'专业影棚三灯布光，均匀柔和'},
+  {value:'rim',label:'✨ 轮廓光',text:'逆光轮廓光，毛发边缘发光'},
+  {value:'softbox',label:'📦 柔光箱',text:'柔光箱均匀光线，无阴影'}
+]
+const TPL_COMPS = [
+  {value:'medium',label:'📐 中景',text:'中景构图，展示主体和部分环境'},
+  {value:'closeup',label:'🔍 特写',text:'近距离特写，突出细节和质感'},
+  {value:'wide',label:'🌐 全景',text:'全景构图，展示完整环境和场景'},
+  {value:'overhead',label:'🔽 俯拍45°',text:'45度俯拍视角，产品展示最佳角度'},
+  {value:'eye_level',label:'👁️ 平视',text:'平视视角，宠物眼睛高度'},
+  {value:'three_layer',label:'📊 三层纵向',text:'三层纵向构图，前景中景远景分明'}
+]
+const TPL_QUALITIES = [
+  {value:'4k',label:'📺 4K超清',text:'4K超清，细节丰富'},
+  {value:'8k',label:'🎥 8K极致',text:'8K分辨率，毛发清晰可见，极致细节'},
+  {value:'phone',label:'📱 手机实拍',text:'手机拍摄质感，真实自然'},
+  {value:'cinema',label:'🎬 电影级',text:'电影级画质，色彩层次丰富'}
+]
+
+// ====== SAMPLE DATA ======
+const SAMPLE_PROMPTS = [
+  {id:'sample-1',title:'多猫互动-猫抓桶实拍延申',tool:'GPT-image2',scenario:'多猫互动',tags:['宠物','猫','实拍+AI','静物'],dimensions:{subject:'三层猫抓桶，顶层摆放了假花瓶、书、眼镜；蓝猫蜷在中层舔爪子，白橘小猫从底层门洞探出头',action:'两只猫在上面玩，蓝猫舔爪子，小猫探头',environment:'浅灰色砖墙背景，浅灰木地板，温馨家居环境',lighting:'柔和自然光，侧光，温馨干净',composition:'平视视角，中景，三层纵向构图',style:'真实手机实拍风格，温馨家居风',quality:'超清，毛发细节清晰，质感真实',negative:'不要卡通风格，不要暗调，不要模糊，不要杂乱背景'},result:'效果很好，猫的毛发质感真实，三层结构清晰。',rating:5,cost:0.06,usageCount:12,createdAt:'2026-06-05T10:30:00Z',updatedAt:'2026-06-05T10:30:00Z'},
+  {id:'sample-2',title:'产品痛点-猫抓沙发破损对比',tool:'即梦',scenario:'产品痛点',tags:['宠物','痛点展示','对比','沙发'],dimensions:{subject:'一张被猫抓坏的真皮沙发，表面有明显的抓痕和破损',action:'猫正在抓沙发边缘，爪子嵌入皮质',environment:'现代客厅环境，干净整洁，与破损沙发形成反差',lighting:'明亮的室内光，重点照亮沙发破损处',composition:'特写+中景切换，突出破损细节',style:'写实风格，类似问题曝光短视频开头',quality:'高清，纹理清晰，破损细节可见',negative:'不要修复效果，不要美化破损，不要暗调'},result:'抓痕效果逼真，无需真的毁坏沙发就能展示痛点。',rating:4,cost:0.17,usageCount:6,createdAt:'2026-06-03T14:00:00Z',updatedAt:'2026-06-04T09:00:00Z'},
+  {id:'sample-3',title:'爆款开头模仿-宠物零食展示',tool:'Seedance2.0 PC',scenario:'爆款模仿',tags:['宠物','零食','爆款模仿','视频'],dimensions:{subject:'各种宠物零食摆放在木质托盘上，包括肉干、咬胶、饼干',action:'一只金毛犬从画面外伸头进来嗅闻零食，尾巴在画面中摇晃',environment:'明亮厨房台面，温暖木色调',lighting:'暖调自然光，从窗户打进来，食物表面有光泽',composition:'俯拍45度角，零食在前景，狗狗在中景',style:'抖音爆款带货视频风格，真实亲切',quality:'4K高清，食物的光泽和质感突出',negative:'不要冷色调，不要商业广告感，不要静态摆拍'},result:'开头3秒狗狗探头+尾巴摇动的动作很有代入感。',rating:4,cost:0.8,usageCount:3,createdAt:'2026-05-28T16:00:00Z',updatedAt:'2026-06-01T11:00:00Z'},
+  {id:'sample-4',title:'真人替换-男博主转女博主',tool:'Seedance2.0 App',scenario:'真人替换',tags:['真人替换','直播','人设','视频'],dimensions:{subject:'一位女性博主站在宠物用品货架前介绍产品',action:'拿起产品展示，自然的手势和表情',environment:'宠物用品店展示架背景',lighting:'环形灯打光，直播标准光线',composition:'半身景，人物居中，产品在手中展示',style:'直播切片风格，自然不刻意',quality:'1080P，人物清晰，产品不变形',negative:'不要僵硬表情，不要产品变形，不要过度美颜'},result:'运镜节奏和话术逻辑保留得很好。产品展示时清晰不变形。',rating:5,cost:1.2,usageCount:4,createdAt:'2026-05-25T08:00:00Z',updatedAt:'2026-05-25T08:00:00Z'}
+]
+const SAMPLE_LOGS = [
+  {id:'log_1',promptId:'sample-1',tool:'GPT-image2',promptText:'三层猫抓桶，两只猫在上面玩…',cost:0.06,result:'success',notes:'1次生成4张，3张可用',imageCount:4,usableCount:3,createdAt:'2026-06-09T14:30:00Z'},
+  {id:'log_2',promptId:'sample-2',tool:'即梦',promptText:'被猫抓坏的真皮沙发…',cost:0.17,result:'partial',notes:'抓痕效果不错但光线偏暗',imageCount:4,usableCount:2,createdAt:'2026-06-09T10:00:00Z'},
+  {id:'log_3',promptId:'sample-3',tool:'Seedance2.0 PC',promptText:'宠物零食展示，金毛探头…',cost:0.8,result:'success',notes:'视频流畅，开头3秒钩子效果好',imageCount:1,usableCount:1,createdAt:'2026-06-08T16:00:00Z'},
+]
+
+// ====== DATA LAYER ======
+function loadData(key, fallback) {
+  try { const raw = localStorage.getItem(key); if (raw) return JSON.parse(raw) } catch(e) {}
+  const seeded = JSON.parse(JSON.stringify(fallback))
+  localStorage.setItem(key, JSON.stringify(seeded))
+  return seeded
+}
+function saveData(key, data) { localStorage.setItem(key, JSON.stringify(data)) }
+
+// ====== MEDIA DIRECTORY (File System Access API) ======
+const MAX_IMAGE_SIZE = 10 * 1024 * 1024   // 10MB
+const MAX_VIDEO_SIZE = 100 * 1024 * 1024  // 100MB
+const MAX_ATTACHMENTS = 20
+const THUMB_MAX = 200
+const ALLOWED_IMAGE = ['image/jpeg','image/png','image/gif','image/webp','image/avif','image/svg+xml']
+const ALLOWED_VIDEO = ['video/mp4','video/webm','video/quicktime','video/x-msvideo']
+const DIR_HANDLE_DB = 'prompt_media_v1'
+const DIR_HANDLE_STORE = '_meta'
+let _dirHandle = null
+let _dirHandleDb = null
+
+function openDirHandleDB() {
+  if (_dirHandleDb) return Promise.resolve(_dirHandleDb)
+  if (!window.indexedDB) return Promise.reject(new Error('浏览器不支持 IndexedDB'))
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DIR_HANDLE_DB, 1)
+    req.onupgradeneeded = (e) => {
+      const db = e.target.result
+      if (!db.objectStoreNames.contains(DIR_HANDLE_STORE)) {
+        db.createObjectStore(DIR_HANDLE_STORE, { keyPath: 'key' })
+      }
+    }
+    req.onsuccess = (e) => { _dirHandleDb = e.target.result; resolve(_dirHandleDb) }
+    req.onerror = (e) => reject(e.target.error)
+  })
+}
+
+async function saveDirHandle(handle) {
+  const db = await openDirHandleDB()
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(DIR_HANDLE_STORE, 'readwrite')
+    tx.objectStore(DIR_HANDLE_STORE).put({ key: 'dirHandle', handle })
+    tx.oncomplete = () => resolve()
+    tx.onerror = (e) => { e.preventDefault(); reject(tx.error) }
+  })
+}
+
+async function loadDirHandle() {
+  try {
+    const db = await openDirHandleDB()
+    return new Promise((resolve) => {
+      const tx = db.transaction(DIR_HANDLE_STORE, 'readonly')
+      const req = tx.objectStore(DIR_HANDLE_STORE).get('dirHandle')
+      req.onsuccess = () => resolve(req.result ? req.result.handle : null)
+      req.onerror = () => resolve(null)
+    })
+  } catch(e) { return null }
+}
+
+async function selectMediaDir() {
+  if (!window.showDirectoryPicker) { showToast('浏览器不支持此功能，请使用 Chrome/Edge 最新版'); return }
+  try {
+    const handle = await window.showDirectoryPicker({ mode: 'readwrite' })
+    _dirHandle = handle
+    await saveDirHandle(handle)
+    updateMediaDirUI()
+    showToast('✅ 存储目录已设置')
+  } catch(e) {
+    if (e.name !== 'AbortError') showToast('设置目录失败: ' + e.message)
+  }
+}
+
+async function getMediaDir() {
+  if (_dirHandle) {
+    // Verify permission
+    const opts = { mode: 'readwrite' }
+    const perm = await _dirHandle.queryPermission(opts)
+    if (perm === 'granted') return _dirHandle
+    const req = await _dirHandle.requestPermission(opts)
+    if (req === 'granted') return _dirHandle
+    _dirHandle = null
+  }
+  // Try to restore from IndexedDB
+  const saved = await loadDirHandle()
+  if (saved) {
+    const opts = { mode: 'readwrite' }
+    const perm = await saved.queryPermission(opts)
+    if (perm === 'granted') { _dirHandle = saved; return _dirHandle }
+    try {
+      const req = await saved.requestPermission(opts)
+      if (req === 'granted') { _dirHandle = saved; return _dirHandle }
+    } catch(e) { /* need user gesture */ }
+  }
+  return null
+}
+
+function mediaDirReady() { return !!_dirHandle }
+
+function updateMediaDirUI() {
+  const el = document.getElementById('mediaDirStatus')
+  if (!el) return
+  el.style.display = _dirHandle ? 'none' : 'inline'
+  el.textContent = _dirHandle ? '' : '⚠ 未选择存储目录'
+}
+
+async function initMediaDir() {
+  try {
+    await getMediaDir()
+  } catch(e) { /* silent */ }
+  updateMediaDirUI()
+}
+
+function makeFileName(promptId, originalName, isThumb) {
+  const safe = originalName.replace(/[^a-zA-Z0-9一-鿿._-]/g, '_').slice(-80)
+  return isThumb ? ('.thumbnails/' + promptId + '_' + safe) : (promptId + '_' + safe)
+}
+
+async function _resolvePathHandle(filename) {
+  // Handle paths like '.thumbnails/xxx.jpg' — navigate into subdirectories
+  const dir = await getMediaDir()
+  if (!dir) throw new Error('未选择存储目录')
+  const parts = filename.split('/')
+  if (parts.length === 1) return { handle: dir, name: parts[0] }
+  let current = dir
+  for (let i = 0; i < parts.length - 1; i++) {
+    current = await current.getDirectoryHandle(parts[i], { create: true })
+  }
+  return { handle: current, name: parts[parts.length - 1] }
+}
+
+async function writeMediaFile(filename, blob) {
+  const { handle, name } = await _resolvePathHandle(filename)
+  const fileHandle = await handle.getFileHandle(name, { create: true })
+  const writable = await fileHandle.createWritable()
+  await writable.write(blob)
+  await writable.close()
+}
+
+async function readMediaFile(filename) {
+  try {
+    const { handle, name } = await _resolvePathHandle(filename)
+    const fileHandle = await handle.getFileHandle(name)
+    return await fileHandle.getFile()
+  } catch(e) { return null }
+}
+
+async function deleteMediaFile(filename) {
+  try {
+    const { handle, name } = await _resolvePathHandle(filename)
+    await handle.removeEntry(name)
+  } catch(e) { /* ignore */ }
+}
+
+async function urlForMediaFile(filename) {
+  const file = await readMediaFile(filename)
+  return file ? URL.createObjectURL(file) : null
+}
+
+// ====== THUMBNAIL GENERATION ======
+function generateImageThumbnail(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    img.onload = () => {
+      URL.revokeObjectURL(url)
+      const scale = Math.min(THUMB_MAX / img.width, THUMB_MAX / img.height, 1)
+      const w = Math.round(img.width * scale), h = Math.round(img.height * scale)
+      const canvas = document.createElement('canvas')
+      canvas.width = w; canvas.height = h
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h)
+      canvas.toBlob((blob) => {
+        if (blob) resolve({ blob, w, h })
+        else reject(new Error('缩略图生成失败'))
+      }, 'image/jpeg', 0.7)
+    }
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('图片加载失败')) }
+    img.src = url
+  })
+}
+
+function generateVideoThumbnail(file) {
+  return new Promise((resolve) => {
+    const video = document.createElement('video')
+    video.preload = 'metadata'
+    video.muted = true; video.playsInline = true
+    const url = URL.createObjectURL(file)
+    video.onloadeddata = () => { video.currentTime = Math.min(1, video.duration * 0.1 || 0) }
+    video.onseeked = () => {
+      const canvas = document.createElement('canvas')
+      const scale = Math.min(THUMB_MAX / video.videoWidth, THUMB_MAX / video.videoHeight, 1)
+      canvas.width = Math.round(video.videoWidth * scale)
+      canvas.height = Math.round(video.videoHeight * scale)
+      canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height)
+      canvas.toBlob((blob) => {
+        URL.revokeObjectURL(url)
+        if (blob) resolve({ blob, w: canvas.width, h: canvas.height })
+        else resolve(null)
+      }, 'image/jpeg', 0.6)
+    }
+    video.onerror = () => { URL.revokeObjectURL(url); resolve(null) }
+    video.src = url
+  })
+}
+
+let prompts = loadData(STORAGE_KEY, SAMPLE_PROMPTS)
+let logs = loadData(LOGS_KEY, SAMPLE_LOGS)
+let currentPage = 'library'
+let editingId = null, editingLogId = null, currentTab = 'structured', currentView = 'grid'
+let activeToolFilter = null, activeScenarioFilter = null, activeRatingFilter = null, activeTagFilter = null, activeMediaTypeFilter = null
+let sortBy = 'newest', searchQuery = '', currentDetailId = null, confirmCallback = null
+let tplCurrentPreset = 'pet_product'
+let _pendingAttachments = []      // File objects to save
+let _removedAttachmentIds = []    // IDs of existing attachments to delete
+let _lightboxPromptId = null, _lightboxIndex = 0, _lightboxUrl = null
+
+// ====== HELPERS ======
+function genId(p) { return (p||'x') + '_' + Date.now() + '_' + Math.random().toString(36).slice(2,8) }
+function buildFullPrompt(dims) {
+  if (!dims) return ''
+  const parts = []
+  if (dims.subject) parts.push(dims.subject)
+  if (dims.action) parts.push(dims.action)
+  if (dims.environment) parts.push(dims.environment)
+  if (dims.lighting) parts.push(dims.lighting)
+  if (dims.composition) parts.push(dims.composition)
+  if (dims.style) parts.push(dims.style)
+  if (dims.quality) parts.push(dims.quality)
+  if (dims.negative) parts.push('负面提示词: ' + dims.negative)
+  return parts.join('，')
+}
+function toolClass(t) { return TOOL_CLASS[t] || '' }
+function formatDate(iso) {
+  const d = new Date(iso), now = new Date(), diff = now - d
+  if (diff < 86400000) return '今天 ' + d.toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})
+  if (diff < 172800000) return '昨天'
+  if (diff < 604800000) return Math.floor(diff/86400000) + '天前'
+  return d.toLocaleDateString('zh-CN',{month:'short',day:'numeric'})
+}
+function escHtml(s) {
+  if (!s) return ''
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+}
+function fmtMoney(n) { return '¥' + (n||0).toFixed(2) }
+
+// ====== PAGE SWITCHING ======
+function switchPage(page) {
+  currentPage = page
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.toggle('active', t.dataset.page === page))
+  document.querySelectorAll('.page').forEach(p => p.classList.toggle('active', p.id === 'page' + page[0].toUpperCase() + page.slice(1)))
+  // Show/hide sidebar
+  const sidebar = document.getElementById('sidebar')
+  sidebar.classList.toggle('hidden', page !== 'library')
+  if (page === 'library') renderLibrary()
+  else if (page === 'template') { initTemplatePage(); onTmplChange() }
+  else if (page === 'memo') initMemoPage()
+  else if (page === 'workflow') initWorkflowPage()
+  else if (page === 'log') renderLog()
+}
+
+// ====== LIBRARY PAGE ======
+function renderLibrary() {
+  renderSidebar()
+  renderStats()
+  renderPrompts()
+  document.getElementById('libCount').textContent = prompts.length
+}
+
+function filteredPrompts() {
+  let list = [...prompts]
+  if (activeMediaTypeFilter) list = list.filter(p => (p.mediaType||'') === activeMediaTypeFilter)
+  if (activeToolFilter) list = list.filter(p => p.tool === activeToolFilter)
+  if (activeScenarioFilter) list = list.filter(p => p.scenario === activeScenarioFilter)
+  if (activeRatingFilter) list = list.filter(p => p.rating >= parseInt(activeRatingFilter))
+  if (activeTagFilter) list = list.filter(p => (p.tags||[]).includes(activeTagFilter))
+  if (searchQuery) {
+    const q = searchQuery.toLowerCase()
+    list = list.filter(p => [p.title,p.tool,p.scenario,(p.tags||[]).join(' '),p.dimensions?.subject,p.dimensions?.action,p.dimensions?.environment,p.dimensions?.lighting,p.dimensions?.composition,p.dimensions?.style,p.dimensions?.quality,p.dimensions?.negative,p.result].join(' ').toLowerCase().includes(q))
+  }
+  switch(sortBy) {
+    case 'newest': list.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)); break
+    case 'oldest': list.sort((a,b)=>new Date(a.createdAt)-new Date(b.createdAt)); break
+    case 'top': list.sort((a,b)=>b.rating-a.rating); break
+    case 'used': list.sort((a,b)=>(b.usageCount||0)-(a.usageCount||0)); break
+  }
+  return list
+}
+
+function renderSidebar() {
+  const toolCounts={}, scenarioCounts={}, tagCounts={}
+  prompts.forEach(p=>{toolCounts[p.tool]=(toolCounts[p.tool]||0)+1; scenarioCounts[p.scenario]=(scenarioCounts[p.scenario]||0)+1; (p.tags||[]).forEach(t=>{tagCounts[t]=(tagCounts[t]||0)+1})})
+  document.getElementById('toolFilter').innerHTML = TOOLS.map(t => `<span class="chip${activeToolFilter===t?' active':''}" onclick="setToolFilter('${t.replace(/'/g,"\\'")}')">${t}<span class="count">${toolCounts[t]||0}</span></span>`).join('')
+  document.getElementById('scenarioFilter').innerHTML = SCENARIOS.map(s => `<span class="chip${activeScenarioFilter===s?' active':''}" onclick="setScenarioFilter('${s.replace(/'/g,"\\'")}')">${s}<span class="count">${scenarioCounts[s]||0}</span></span>`).join('')
+  document.querySelectorAll('#mediaTypeFilter .chip').forEach(c => { c.classList.toggle('active', activeMediaTypeFilter===c.dataset.mtype); c.onclick = () => setMediaTypeFilter(c.dataset.mtype) })
+  document.querySelectorAll('#ratingFilter .chip').forEach(c => { c.classList.toggle('active', activeRatingFilter===c.dataset.rating); c.onclick = () => setRatingFilter(c.dataset.rating) })
+  const sortedTags = Object.entries(tagCounts).sort((a,b)=>b[1]-a[1]).slice(0,15)
+  document.getElementById('tagFilter').innerHTML = sortedTags.map(([t,c]) => `<span class="chip${activeTagFilter===t?' active':''}" onclick="setTagFilter('${t.replace(/'/g,"\\'")}')">${t}<span class="count">${c}</span></span>`).join('')
+}
+
+function renderStats() {
+  const f = filteredPrompts(), total = f.reduce((s,p)=>s+(p.usageCount||0),0), avg = f.length ? (f.reduce((s,p)=>s+p.rating,0)/f.length).toFixed(1) : 0, tools = [...new Set(f.map(p=>p.tool))].length
+  document.getElementById('statsBar').innerHTML = `<div class="stat-card"><div class="stat-num">${f.length}</div><div class="stat-label">提示词总数</div></div><div class="stat-card"><div class="stat-num">${tools}</div><div class="stat-label">涉及工具</div></div><div class="stat-card"><div class="stat-num">⭐ ${avg}</div><div class="stat-label">平均评分</div></div><div class="stat-card"><div class="stat-num">${total}</div><div class="stat-label">累计使用次数</div></div>`
+}
+
+function renderPrompts() {
+  const filtered = filteredPrompts(), grid = document.getElementById('promptsGrid'), empty = document.getElementById('emptyState')
+  grid.className = 'prompts-grid' + (currentView==='list'?' list-view':'')
+  if (filtered.length===0) { grid.innerHTML=''; empty.classList.add('visible') }
+  else { empty.classList.remove('visible')
+    grid.innerHTML = filtered.map(p => {
+      const full = buildFullPrompt(p.dimensions||{}), stars = '⭐'.repeat(p.rating)+'☆'.repeat(5-p.rating)
+      const attCount = (p.attachments||[]).length
+      const typeIcon = p.mediaType==='video'?'🎬':p.mediaType==='image'?'🖼️':''
+      return `<div class="prompt-card" data-prompt-id="${p.id}" onclick="openDetail('${p.id}')"><div class="card-header"><div class="card-title">${typeIcon?typeIcon+' ':''}${escHtml(p.title)}</div><div class="card-actions" onclick="event.stopPropagation()"><button onclick="copyFullPrompt('${p.id}')" title="复制">📋</button><button onclick="incrementUsage('${p.id}')" title="标记使用">✅</button></div></div><div class="card-meta"><span class="tool-badge ${toolClass(p.tool)}">${escHtml(p.tool)}</span>${p.scenario?`<span style="font-size:11px;color:var(--text3);padding:3px 8px;background:var(--bg);border-radius:10px">${escHtml(p.scenario)}</span>`:''}${(p.tags||[]).slice(0,2).map(t=>`<span style="font-size:10px;color:var(--primary);background:var(--primary-light);padding:2px 8px;border-radius:10px">${escHtml(t)}</span>`).join('')}${attCount>0?`<span style="font-size:10px;color:var(--text3);padding:2px 8px;background:var(--bg);border-radius:10px">📎${attCount}</span>`:''}</div><div class="card-preview">${escHtml(full)}</div>${attCount>0?`<div class="card-thumbs" data-prompt-id="${p.id}"></div>`:''}<div class="card-footer"><span class="stars">${stars}</span><span>🔄 ${p.usageCount||0}次 · ${formatDate(p.createdAt)}</span></div></div>`
+    }).join('')
+    // Async load card thumbnails
+    loadCardThumbnails(filtered)
+  }
+}
+
+async function loadCardThumbnails(filteredList) {
+  if (!(await getMediaDir())) return
+  for (const p of filteredList) {
+    const atts = p.attachments || []
+    if (atts.length === 0) continue
+    const container = document.querySelector(`.card-thumbs[data-prompt-id="${p.id}"]`)
+    if (!container) continue
+
+    const showAtts = atts.slice(0, 3)
+    let html = ''
+    for (const a of showAtts) {
+      const isVid = (a.type||'').startsWith('video/')
+      const url = a._thumbName ? await urlForMediaFile(a._thumbName) : null
+      if (url) {
+        html += `<div class="card-thumb"><img src="${url}">${isVid?`<span class="thumb-icon">▶</span>`:''}</div>`
+      } else {
+        html += `<div class="card-thumb" style="display:flex;align-items:center;justify-content:center;font-size:18px">${isVid?'🎬':'🖼️'}</div>`
+      }
+    }
+    if (atts.length > 3) {
+      html += `<div class="card-thumb-more">+${atts.length - 3}</div>`
+    }
+    container.innerHTML = html
+  }
+}
+
+function setMediaTypeFilter(v) { activeMediaTypeFilter = activeMediaTypeFilter===v ? null : v; renderLibrary() }
+function setToolFilter(v) { activeToolFilter = activeToolFilter===v ? null : v; renderLibrary() }
+function setScenarioFilter(v) { activeScenarioFilter = activeScenarioFilter===v ? null : v; renderLibrary() }
+function setRatingFilter(v) { activeRatingFilter = activeRatingFilter===v ? null : v; renderLibrary() }
+function setTagFilter(v) { activeTagFilter = activeTagFilter===v ? null : v; renderLibrary() }
+function onSearch() { searchQuery = document.getElementById('searchInput').value.trim(); renderPrompts() }
+function onSort() { sortBy = document.getElementById('sortSelect').value; renderPrompts() }
+function setView(v) { currentView=v; document.querySelectorAll('#viewToggle button').forEach(b=>b.classList.toggle('active',b.dataset.view===v)); renderPrompts() }
+
+// ====== TEMPLATE ENGINE ======
+function initTemplatePage() {
+  const petSel = document.getElementById('tpPetType')
+  petSel.innerHTML = '<option value="">请选择</option>' + TPL_PET_TYPES.map(t => `<option value="${t.value}">${t.label}</option>`).join('')
+  document.getElementById('tpScenario').innerHTML = '<option value="">请选择</option>' + TPL_SCENARIOS.map(s => `<option value="${s.value}">${s.label}</option>`).join('')
+  document.getElementById('tpStyle').innerHTML = '<option value="">请选择</option>' + TPL_STYLES.map(s => `<option value="${s.value}">${s.label}</option>`).join('')
+  document.getElementById('tpLight').innerHTML = '<option value="">请选择</option>' + TPL_LIGHTS.map(l => `<option value="${l.value}">${l.label}</option>`).join('')
+  document.getElementById('tpComp').innerHTML = '<option value="">请选择</option>' + TPL_COMPS.map(c => `<option value="${c.value}">${c.label}</option>`).join('')
+  document.getElementById('tpQuality').innerHTML = '<option value="">请选择</option>' + TPL_QUALITIES.map(q => `<option value="${q.value}">${q.label}</option>`).join('')
+  document.getElementById('tpTool').innerHTML = '<option value="">请选择</option>' + TOOLS.map(t => `<option value="${t}">${t}</option>`).join('')
+  // Breed dropdown depends on pet type
+  document.getElementById('tpPetType').onchange = function() {
+    const v = this.value; const pt = TPL_PET_TYPES.find(t => t.value===v)
+    const breedSel = document.getElementById('tpBreed')
+    breedSel.innerHTML = '<option value="">不限品种</option>' + (pt&&pt.breeds?pt.breeds.map(b=>`<option value="${b}">${b}</option>`).join(''):'')
+    onTmplChange()
+  }
+  document.getElementById('tpBreed').onchange = onTmplChange
+}
+
+function applyPreset(preset) {
+  tplCurrentPreset = preset
+  document.querySelectorAll('#tmplPresets .tmpl-preset').forEach(b => b.classList.toggle('active', b.dataset.preset===preset))
+  // Reset all
+  document.getElementById('tpPetType').value = ''; document.getElementById('tpBreed').innerHTML = '<option value="">不限品种</option>'
+  document.getElementById('tpScenario').value = ''; document.getElementById('tpStyle').value = ''
+  document.getElementById('tpLight').value = ''; document.getElementById('tpComp').value = ''; document.getElementById('tpQuality').value = ''
+  document.getElementById('tpTool').value = ''; document.getElementById('tpProduct').value = ''; document.getElementById('tpExtra').value = ''; document.getElementById('tpNegative').value = ''
+  // Apply presets
+  const cfg = {
+    pet_product: {pet:'cat',scenario:'still_life',style:'real',light:'natural_soft',comp:'overhead',quality:'4k',tool:'GPT-image2',neg:'不要卡通，不要模糊，不要暗调'},
+    pain_point: {pet:'cat',scenario:'pain_point',style:'real',light:'natural_bright',comp:'closeup',quality:'4k',tool:'即梦',neg:'不要美化效果，不要模糊'},
+    trending: {pet:'dog',scenario:'trending',style:'warm',light:'warm',comp:'overhead',quality:'4k',tool:'Seedance2.0 PC',neg:'不要冷色调，不要静态摆拍'},
+    portrait: {pet:'cat',scenario:'portrait',style:'minimal',light:'softbox',comp:'eye_level',quality:'8k',tool:'GPT-image2',neg:'不要复杂背景，不要暗调'},
+    scene: {pet:'product',scenario:'multi_pet',style:'warm',light:'natural_soft',comp:'wide',quality:'4k',tool:'GPT-image2',neg:'不要卡通'}
+  }[preset] || {}
+  if (cfg.pet) document.getElementById('tpPetType').value = cfg.pet
+  document.getElementById('tpPetType').onchange()
+  if (cfg.scenario) document.getElementById('tpScenario').value = cfg.scenario
+  if (cfg.style) document.getElementById('tpStyle').value = cfg.style
+  if (cfg.light) document.getElementById('tpLight').value = cfg.light
+  if (cfg.comp) document.getElementById('tpComp').value = cfg.comp
+  if (cfg.quality) document.getElementById('tpQuality').value = cfg.quality
+  if (cfg.tool) document.getElementById('tpTool').value = cfg.tool
+  if (cfg.neg) document.getElementById('tpNegative').value = cfg.neg
+  onTmplChange()
+}
+
+function getTmplDims() {
+  const petType = TPL_PET_TYPES.find(t=>t.value===document.getElementById('tpPetType').value)
+  const breed = document.getElementById('tpBreed').value
+  const scenario = TPL_SCENARIOS.find(s=>s.value===document.getElementById('tpScenario').value)
+  const style = TPL_STYLES.find(s=>s.value===document.getElementById('tpStyle').value)
+  const light = TPL_LIGHTS.find(l=>l.value===document.getElementById('tpLight').value)
+  const comp = TPL_COMPS.find(c=>c.value===document.getElementById('tpComp').value)
+  const quality = TPL_QUALITIES.find(q=>q.value===document.getElementById('tpQuality').value)
+  const tool = document.getElementById('tpTool').value
+  const product = document.getElementById('tpProduct').value.trim()
+  const extra = document.getElementById('tpExtra').value.trim()
+  const neg = document.getElementById('tpNegative').value.trim()
+
+  const petDesc = breed || (petType?petType.label:'')
+  const prodDesc = product || '[产品]'
+
+  return {
+    subject: scenario ? scenario.subject.replace('[品种]',petDesc).replace('[产品]',prodDesc) : (petDesc+'与'+prodDesc),
+    action: scenario ? scenario.action.replace('[品种]',petDesc).replace('[产品]',prodDesc) : '',
+    environment: scenario ? scenario.env : '',
+    lighting: light ? light.text : '',
+    composition: comp ? comp.text : '',
+    style: style ? style.text : '',
+    quality: quality ? quality.text : '',
+    negative: neg || '',
+    tool: tool,
+    extra: extra
+  }
+}
+
+function onTmplChange() {
+  const d = getTmplDims()
+  const full = buildFullPrompt(d)
+  document.getElementById('tmplFullPrompt').textContent = full || '选择左侧参数，这里会实时显示拼接好的完整提示词…'
+  // Render 8 dims
+  const labels = ['主体','动作','环境','光线','构图','风格','画质','负面词']
+  const keys = ['subject','action','environment','lighting','composition','style','quality','negative']
+  document.getElementById('tmplDims').innerHTML = keys.map((k,i) => {
+    const val = d[k] || (k==='negative'?'':(k==='extra'?'':'—'))
+    return `<div class="tmpl-dim-item"><div class="dl">${i+1}. ${labels[i]}</div><div class="dv">${escHtml(val)||'—'}</div></div>`
+  }).join('') + (d.extra ? `<div class="tmpl-dim-item" style="grid-column:1/-1"><div class="dl">补充</div><div class="dv">${escHtml(d.extra)}</div></div>` : '')
+}
+
+function copyTemplatePrompt() {
+  const d = getTmplDims()
+  const full = buildFullPrompt(d)
+  if (!full) { showToast('请先选择参数'); return }
+  navigator.clipboard.writeText(full).then(() => showToast('📋 已复制'))
+}
+
+function saveTemplateToLibrary() {
+  const d = getTmplDims()
+  const full = buildFullPrompt(d)
+  if (!full) { showToast('请至少选择主体类型和场景'); return }
+  // Pre-fill the modal
+  editingId = null
+  document.getElementById('modalTitle').textContent = '新建提示词（来自模板）'
+  document.getElementById('sTitle').value = (document.getElementById('tpProduct').value || '模板生成') + '-' + (TPL_SCENARIOS.find(s=>s.value===document.getElementById('tpScenario').value)?.label||'')
+  document.getElementById('sTool').value = d.tool
+  document.getElementById('sScenario').value = ''
+  document.getElementById('sTags').value = ''
+  document.getElementById('sResult').value = ''
+  document.getElementById('sRating').value = '5'
+  document.getElementById('sCost').value = ''
+  document.getElementById('dSubject').value = d.subject
+  document.getElementById('dAction').value = d.action
+  document.getElementById('dEnvironment').value = d.environment
+  document.getElementById('dLighting').value = d.lighting
+  document.getElementById('dComposition').value = d.composition
+  document.getElementById('dStyle').value = d.style
+  document.getElementById('dQuality').value = d.quality
+  document.getElementById('dNegative').value = d.negative
+  // Auto-set mediaType based on tool
+  const vidTools = ['Sora2','Seedance2.0 PC','Seedance2.0 App']
+  document.getElementById('sMediaType').value = vidTools.includes(d.tool) ? 'video' : d.tool ? 'image' : ''
+  switchModalTab('structured')
+  _pendingAttachments = []; _removedAttachmentIds = []
+  renderAttachPreview()
+  document.getElementById('modalOverlay').classList.add('open')
+}
+// ====== WORKFLOW CANVAS ======
+const WF_KEY = 'workflow_canvas_v1'
+const NODE_TYPES = {
+  starter: { label:'🎯 开始设定', hdrClass:'starter-hdr', inputs:[], outputs:['prompt'] },
+  prompt: { label:'📝 提示词', hdrClass:'prompt-hdr', inputs:['prompt'], outputs:['prompt'] },
+  image_gen: { label:'🖼️ AI 生图', hdrClass:'image-hdr', inputs:['prompt'], outputs:['image'] },
+  video_gen: { label:'🎬 AI 生视频', hdrClass:'video-hdr', inputs:['prompt'], outputs:['video'] },
+  review: { label:'✅ 审核/记录', hdrClass:'review-hdr', inputs:['result'], outputs:[] }
+}
+const WF_IMG_TOOLS = ['GPT-image2','即梦','Midjourney','Nano Banana Pro','Omni','其他']
+const WF_VIDEO_TOOLS = ['Sora2','Seedance2.0 PC','Seedance2.0 App','即梦','其他']
+
+let workflows = []
+let currentWfId = null
+let _wfPanning = false, _wfPanX = 0, _wfPanY = 0, _wfZoom = 1
+let _wfDraggingNode = null, _wfDragOffX = 0, _wfDragOffY = 0
+let _wfConnecting = null, _wfConnLine = null  // {nodeId, portIndex, startX, startY}
+
+function loadWorkflows() { try { const r = localStorage.getItem(WF_KEY); if (r) workflows = JSON.parse(r) } catch(e) { workflows = [] } }
+function saveWorkflows() {
+  localStorage.setItem(WF_KEY, JSON.stringify(workflows))
+  if (_sbToken) { for (const w of workflows) { cloudSaveWorkflow(w).catch(()=>{}) } }
+}
+function getCurrentWf() { return workflows.find(w => w.id === currentWfId) || null }
+function wfGenId() { return 'wf_' + Date.now() + '_' + Math.random().toString(36).slice(2,6) }
+
+function initWorkflowPage() {
+  loadWorkflows()
+  updateWfSelector()
+  if (workflows.length > 0) { switchWorkflow(workflows[0].id) }
+  else { currentWfId = null; renderWorkflowCanvas() }
+  document.getElementById('wfCount').textContent = workflows.length
+}
+
+function updateWfSelector() {
+  const sel = document.getElementById('wfSelector')
+  sel.innerHTML = '<option value="">＋ 新建工作流</option>' + workflows.map(w => `<option value="${w.id}" ${w.id===currentWfId?'selected':''}>${escHtml(w.name||'未命名')}</option>`).join('')
+  document.getElementById('wfCount').textContent = workflows.length
+}
+
+function newWorkflow() {
+  const wf = { id: wfGenId(), name: '新工作流', nodes: [], connections: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
+  workflows.unshift(wf)
+  saveWorkflows()
+  currentWfId = wf.id
+  updateWfSelector()
+  document.getElementById('wfNameInput').value = wf.name
+  renderWorkflowCanvas()
+}
+
+function switchWorkflow(id) {
+  if (!id) { newWorkflow(); return }
+  currentWfId = id
+  const wf = getCurrentWf()
+  if (wf) document.getElementById('wfNameInput').value = wf.name || ''
+  updateWfSelector()
+  renderWorkflowCanvas()
+}
+
+function renameCurrentWorkflow() {
+  const wf = getCurrentWf(); if (!wf) return
+  wf.name = document.getElementById('wfNameInput').value || '未命名'
+  wf.updatedAt = new Date().toISOString()
+  saveWorkflows(); updateWfSelector()
+}
+
+function saveCurrentWorkflow() {
+  const wf = getCurrentWf(); if (!wf) { showToast('请先新建工作流'); return }
+  wf.name = document.getElementById('wfNameInput').value || wf.name
+  wf.updatedAt = new Date().toISOString()
+  saveWorkflows(); updateWfSelector()
+  showToast('💾 已保存')
+}
+
+function deleteCurrentWorkflow() {
+  const wf = getCurrentWf(); if (!wf) return
+  showConfirm('删除工作流', `确定要删除「${wf.name}」吗？`, () => {
+    workflows = workflows.filter(w => w.id !== currentWfId)
+    saveWorkflows()
+    currentWfId = workflows.length > 0 ? workflows[0].id : null
+    updateWfSelector()
+    if (currentWfId) { const w = getCurrentWf(); if (w) document.getElementById('wfNameInput').value = w.name }
+    else document.getElementById('wfNameInput').value = ''
+    renderWorkflowCanvas()
+    showToast('已删除')
+  })
+}
+
+// ====== Canvas Rendering ======
+function renderWorkflowCanvas() {
+  const wf = getCurrentWf()
+  const canvas = document.getElementById('wfCanvas')
+  const svg = document.getElementById('wfSvg')
+  const empty = document.getElementById('wfEmpty')
+
+  // Clear existing nodes (keep svg + empty)
+  canvas.querySelectorAll('.wf-node').forEach(n => n.remove())
+
+  if (!wf || wf.nodes.length === 0) {
+    svg.innerHTML = ''
+    empty.style.display = 'block'
+    return
+  }
+  empty.style.display = 'none'
+
+  // Render nodes
+  for (const node of wf.nodes) {
+    renderWorkflowNode(node)
+  }
+  // Render connections
+  renderWorkflowConnections()
+}
+
+function renderWorkflowNode(node) {
+  const canvas = document.getElementById('wfCanvas')
+  const nt = NODE_TYPES[node.type] || NODE_TYPES.prompt
+
+  const el = document.createElement('div')
+  el.className = 'wf-node'
+  el.id = 'wfNode-' + node.id
+  el.style.left = node.x + 'px'
+  el.style.top = node.y + 'px'
+  el.innerHTML = buildNodeHTML(node, nt)
+  canvas.appendChild(el)
+
+  // Attach event handlers
+  const header = el.querySelector('.wf-node-header')
+  if (header) {
+    header.addEventListener('mousedown', (e) => onNodeDragStart(e, node.id))
+  }
+  el.querySelector('.wf-node-delete')?.addEventListener('click', () => deleteWorkflowNode(node.id))
+
+  // Port event handlers
+  el.querySelectorAll('.wf-port.output-port').forEach(p => {
+    p.addEventListener('mousedown', (e) => onPortDragStart(e, node.id, 'output', parseInt(p.dataset.idx)))
+  })
+  el.querySelectorAll('.wf-port.input-port').forEach(p => {
+    p.addEventListener('mouseup', (e) => onPortDragEnd(e, node.id, 'input', parseInt(p.dataset.idx)))
+  })
+
+  // Content change handlers
+  setTimeout(() => bindNodeContentEvents(node), 0)
+}
+
+function buildNodeHTML(node, nt) {
+  const data = node.data || {}
+  let bodyHTML = ''
+  switch (node.type) {
+    case 'starter':
+      bodyHTML = `<textarea id="wnStarterDesc-${node.id}" placeholder="描述你想要的画面或视频效果（越详细越好）…" style="min-height:80px" oninput="onNodeDataChange('${node.id}')">${escHtml(data.description||'')}</textarea>`
+      break
+    case 'prompt':
+      bodyHTML = `<select id="wnPrompt-${node.id}" onchange="onPromptNodeChange('${node.id}')">
+        <option value="">选择提示词…</option>${prompts.map(p => `<option value="${p.id}" ${data.promptId===p.id?'selected':''}>${escHtml(p.title)}</option>`).join('')}
+      </select>
+      <textarea id="wnPromptText-${node.id}" placeholder="或直接输入提示词…" oninput="onPromptNodeChange('${node.id}')">${escHtml(data.customPrompt||'')}</textarea>
+      <div style="font-size:10px;color:var(--text3);margin-top:4px;cursor:pointer;max-height:28px;overflow:hidden;line-height:1.4;white-space:pre-wrap" id="wnPromptPreview-${node.id}" onclick="toggleNodePreview('wnPromptPreview-${node.id}')" title="点击展开/收起">${data.promptPreview?escHtml(data.promptPreview):''}</div>`
+      break
+    case 'image_gen':
+      bodyHTML = `<select id="wnImgTool-${node.id}" oninput="onNodeDataChange('${node.id}')">
+        <option value="">选择工具…</option>${WF_IMG_TOOLS.map(t => `<option value="${t}" ${data.tool===t?'selected':''}>${t}</option>`).join('')}
+      </select>
+      <input id="wnImgParams-${node.id}" placeholder="额外参数（如：4K, 16:9）" value="${escHtml(data.params||'')}" oninput="onNodeDataChange('${node.id}')">`
+      break
+    case 'video_gen':
+      bodyHTML = `<select id="wnVidTool-${node.id}" oninput="onNodeDataChange('${node.id}')">
+        <option value="">选择工具…</option>${WF_VIDEO_TOOLS.map(t => `<option value="${t}" ${data.tool===t?'selected':''}>${t}</option>`).join('')}
+      </select>
+      <input id="wnVidParams-${node.id}" placeholder="额外参数（如：5s, 1080p）" value="${escHtml(data.params||'')}" oninput="onNodeDataChange('${node.id}')">`
+      break
+    case 'review':
+      bodyHTML = `<select id="wnResult-${node.id}" oninput="onNodeDataChange('${node.id}')">
+        <option value="">结果…</option><option value="success" ${data.result==='success'?'selected':''}>✅ 成功</option><option value="partial" ${data.result==='partial'?'selected':''}>⚠️ 部分可用</option><option value="fail" ${data.result==='fail'?'selected':''}>❌ 失败</option>
+      </select>
+      <textarea id="wnNotes-${node.id}" placeholder="备注…" oninput="onNodeDataChange('${node.id}')">${escHtml(data.notes||'')}</textarea>`
+      break
+  }
+
+  const inPorts = nt.inputs.map((label, i) => `<div class="wf-port input-port" data-idx="${i}" title="${label}"></div>`).join('')
+  const outPorts = nt.outputs.map((label, i) => `<div class="wf-port output-port" data-idx="${i}" title="${label}"></div>`).join('')
+
+  return `<div class="wf-ports input">${inPorts}</div>
+    <div class="wf-ports output">${outPorts}</div>
+    <div class="wf-node-header ${nt.hdrClass}"><span>${nt.label}</span><button class="wf-node-delete">✕</button></div>
+    <div class="wf-node-body">${bodyHTML}</div>`
+}
+
+function bindNodeContentEvents(node) {
+  // Re-attach any dynamic content handlers
+  const sel = document.getElementById('wnPrompt-' + node.id)
+  if (sel) sel.addEventListener('change', () => onPromptNodeChange(node.id))
+  const ta = document.getElementById('wnPromptText-' + node.id)
+  if (ta) ta.addEventListener('input', () => onPromptNodeChange(node.id))
+}
+
+function renderWorkflowConnections() {
+  const wf = getCurrentWf(); if (!wf) return
+  const svg = document.getElementById('wfSvg')
+  let html = ''
+  for (const conn of (wf.connections || [])) {
+    // Get actual port positions from DOM
+    const fromNodeEl = document.getElementById('wfNode-' + conn.from)
+    const toNodeEl = document.getElementById('wfNode-' + conn.to)
+    if (!fromNodeEl || !toNodeEl) continue
+    // Output port is on the right side
+    const fromPort = fromNodeEl.querySelector('.wf-port.output-port')
+    const toPort = toNodeEl.querySelector('.wf-port.input-port')
+    if (!fromPort || !toPort) continue
+    const fromRect = fromPort.getBoundingClientRect()
+    const toRect = toPort.getBoundingClientRect()
+    const canvasWrap = document.getElementById('wfCanvasWrap')
+    const wrapRect = canvasWrap.getBoundingClientRect()
+    const canvas = document.getElementById('wfCanvas')
+    const cx = parseFloat(canvas.style.left || '0')
+    const cy = parseFloat(canvas.style.top || '0')
+    // Convert screen coords to canvas coords (account for pan offset + zoom)
+    const x1 = (fromRect.left + fromRect.width/2 - wrapRect.left - cx) / _wfZoom
+    const y1 = (fromRect.top + fromRect.height/2 - wrapRect.top - cy) / _wfZoom
+    const x2 = (toRect.left + toRect.width/2 - wrapRect.left - cx) / _wfZoom
+    const y2 = (toRect.top + toRect.height/2 - wrapRect.top - cy) / _wfZoom
+    html += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" class="conn-hit" data-conn-id="${conn.id}" onclick="deleteConnection('${conn.id}')"/>
+             <line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`
+  }
+  svg.innerHTML = html
+}
+
+// ====== Canvas Interaction ======
+function onCanvasMouseDown(e) {
+  if (e.target.closest('.wf-node') || e.target.closest('.wf-port') || e.target.closest('.conn-hit')) return
+  _wfPanning = true
+  _wfPanX = e.clientX; _wfPanY = e.clientY
+  document.getElementById('wfCanvasWrap').style.cursor = 'grabbing'
+}
+
+function onCanvasMouseMove(e) {
+  if (_wfPanning) {
+    const dx = e.clientX - _wfPanX, dy = e.clientY - _wfPanY
+    _wfPanX = e.clientX; _wfPanY = e.clientY
+    const canvas = document.getElementById('wfCanvas')
+    const curX = parseFloat(canvas.style.left || '0'), curY = parseFloat(canvas.style.top || '0')
+    canvas.style.left = (curX + dx) + 'px'
+    canvas.style.top = (curY + dy) + 'px'
+    renderWorkflowConnections()
+  }
+  if (_wfDraggingNode) {
+    const dx = e.clientX - _wfDragOffX, dy = e.clientY - _wfDragOffY
+    const el = document.getElementById('wfNode-' + _wfDraggingNode)
+    if (el) {
+      const newX = (_wfNodeStartX || 0) + dx / _wfZoom
+      const newY = (_wfNodeStartY || 0) + dy / _wfZoom
+      el.style.left = Math.max(0, newX) + 'px'
+      el.style.top = Math.max(0, newY) + 'px'
+    }
+    renderWorkflowConnections()
+  }
+  if (_wfConnecting) {
+    updateDragLine(e.clientX, e.clientY)
+  }
+}
+
+function onCanvasMouseUp(e) {
+  if (_wfPanning) {
+    _wfPanning = false
+    document.getElementById('wfCanvasWrap').style.cursor = ''
+  }
+  if (_wfDraggingNode) {
+    const wf = getCurrentWf(); if (wf) {
+      const node = wf.nodes.find(n => n.id === _wfDraggingNode)
+      if (node) {
+        const el = document.getElementById('wfNode-' + node.id)
+        if (el) { node.x = parseInt(el.style.left) || 0; node.y = parseInt(el.style.top) || 0 }
+        node.x = Math.max(0, node.x); node.y = Math.max(0, node.y)
+      }
+    }
+    _wfDraggingNode = null
+    renderWorkflowConnections()
+    saveCurrentWorkflowSilent()
+  }
+  if (_wfConnecting) {
+    removeDragLine()
+    _wfConnecting = null
+  }
+}
+
+function onCanvasWheel(e) {
+  if (!e.ctrlKey && !e.metaKey) return  // Only zoom with Ctrl+wheel
+  e.preventDefault()
+  const delta = e.deltaY > 0 ? 0.9 : 1.1
+  _wfZoom = Math.max(0.3, Math.min(2, _wfZoom * delta))
+  document.getElementById('wfCanvas').style.transform = `scale(${_wfZoom})`
+  document.getElementById('wfZoomLabel').textContent = Math.round(_wfZoom * 100) + '%'
+  renderWorkflowConnections()
+}
+
+// ====== Node Interaction ======
+function addWorkflowNode(type) {
+  const wf = getCurrentWf(); if (!wf) { showToast('请先新建工作流'); return }
+  let defaultData = {}
+  if (type === 'starter') defaultData = { description:'' }
+  else if (type === 'prompt') defaultData = { promptId:'', customPrompt:'', promptPreview:'' }
+  else if (type === 'review') defaultData = { result:'', notes:'' }
+  else defaultData = { tool:'', params:'' }
+  const node = { id: wfGenId().replace('wf_','n_'), type, x: 100 + wf.nodes.length * 30, y: 100 + wf.nodes.length * 30, data: defaultData }
+  wf.nodes.push(node)
+  renderWorkflowCanvas()
+  saveCurrentWorkflowSilent()
+  showToast(`已添加「${NODE_TYPES[type].label}」节点`)
+}
+
+let _wfNodeStartX = 0, _wfNodeStartY = 0
+
+function onNodeDragStart(e, nodeId) {
+  if (e.target.closest('.wf-node-delete') || e.target.closest('.wf-port')) return
+  _wfDraggingNode = nodeId
+  _wfDragOffX = e.clientX; _wfDragOffY = e.clientY
+  const el = document.getElementById('wfNode-' + nodeId)
+  _wfNodeStartX = el ? (parseInt(el.style.left) || 0) : 0
+  _wfNodeStartY = el ? (parseInt(el.style.top) || 0) : 0
+  e.preventDefault()
+}
+
+function deleteWorkflowNode(nodeId) {
+  const wf = getCurrentWf(); if (!wf) return
+  const node = wf.nodes.find(n => n.id === nodeId)
+  showConfirm('删除节点', `确定要删除「${NODE_TYPES[node.type]?.label||'节点'}」吗？`, () => {
+    wf.nodes = wf.nodes.filter(n => n.id !== nodeId)
+    wf.connections = wf.connections.filter(c => c.from !== nodeId && c.to !== nodeId)
+    renderWorkflowCanvas()
+    saveCurrentWorkflowSilent()
+  })
+}
+
+// ====== Connection Interaction ======
+function onPortDragStart(e, nodeId, portType, portIdx) {
+  if (portType !== 'output') return  // Only output ports initiate connections
+  e.stopPropagation(); e.preventDefault()
+  const el = document.getElementById('wfNode-' + nodeId)
+  if (!el) return
+  const rect = el.getBoundingClientRect()
+  _wfConnecting = { nodeId, portIdx, startX: rect.right, startY: rect.top + rect.height / 2 }
+  createDragLine(_wfConnecting.startX, _wfConnecting.startY, e.clientX, e.clientY)
+}
+
+function onPortDragEnd(e, nodeId, portType, portIdx) {
+  if (portType !== 'input') return
+  if (!_wfConnecting) return
+  e.stopPropagation(); e.preventDefault()
+
+  const wf = getCurrentWf(); if (!wf) { removeDragLine(); _wfConnecting = null; return }
+  // Prevent duplicate connections
+  const exists = wf.connections.find(c => c.from === _wfConnecting.nodeId && c.to === nodeId)
+  if (exists) { removeDragLine(); _wfConnecting = null; return }
+  // Prevent self-connection
+  if (_wfConnecting.nodeId === nodeId) { removeDragLine(); _wfConnecting = null; return }
+
+  wf.connections.push({ id: 'c_' + Date.now(), from: _wfConnecting.nodeId, to: nodeId })
+  renderWorkflowConnections()
+  saveCurrentWorkflowSilent()
+  removeDragLine()
+  _wfConnecting = null
+}
+
+function deleteConnection(connId) {
+  const wf = getCurrentWf(); if (!wf) return
+  wf.connections = wf.connections.filter(c => c.id !== connId)
+  renderWorkflowConnections()
+  saveCurrentWorkflowSilent()
+  showToast('连线已删除')
+}
+
+function createDragLine(x1, y1, x2, y2) {
+  removeDragLine()
+  const div = document.createElement('div'); div.className = 'drag-line'; div.id = 'dragLine'
+  div.style.left = '0px'; div.style.top = '0px'
+  div.innerHTML = `<svg width="${window.innerWidth}" height="${window.innerHeight}"><line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#6366F1" stroke-width="2" stroke-dasharray="6,4"/></svg>`
+  document.body.appendChild(div)
+}
+
+function updateDragLine(x2, y2) {
+  const el = document.getElementById('dragLine')
+  if (!el || !_wfConnecting) return
+  el.innerHTML = `<svg width="${window.innerWidth}" height="${window.innerHeight}"><line x1="${_wfConnecting.startX}" y1="${_wfConnecting.startY}" x2="${x2}" y2="${y2}" stroke="#6366F1" stroke-width="2" stroke-dasharray="6,4"/></svg>`
+}
+
+function removeDragLine() {
+  const el = document.getElementById('dragLine'); if (el) el.remove()
+}
+
+// ====== Node Content Handlers ======
+function onPromptNodeChange(nodeId) {
+  const wf = getCurrentWf(); if (!wf) return
+  const node = wf.nodes.find(n => n.id === nodeId); if (!node) return
+  const promptId = document.getElementById('wnPrompt-' + nodeId)?.value || ''
+  const customText = document.getElementById('wnPromptText-' + nodeId)?.value || ''
+  let promptPreview = ''
+  if (promptId) {
+    const p = prompts.find(x => x.id === promptId)
+    if (p) promptPreview = buildFullPrompt(p.dimensions || {})
+  }
+  if (!promptPreview && customText) promptPreview = customText
+  node.data = { ...node.data, promptId, customPrompt: customText, promptPreview }
+  const previewEl = document.getElementById('wnPromptPreview-' + nodeId)
+  if (previewEl) previewEl.textContent = promptPreview ? promptPreview.slice(0, 100) + (promptPreview.length > 100 ? '...' : '') : ''
+  saveCurrentWorkflowSilent()
+}
+
+function onNodeDataChange(nodeId) {
+  const wf = getCurrentWf(); if (!wf) return
+  const node = wf.nodes.find(n => n.id === nodeId); if (!node) return
+  if (node.type === 'starter') {
+    node.data.description = document.getElementById('wnStarterDesc-'+nodeId)?.value || ''
+  } else if (node.type === 'image_gen') {
+    node.data = { tool: document.getElementById('wnImgTool-'+nodeId)?.value||'', params: document.getElementById('wnImgParams-'+nodeId)?.value||'' }
+  } else if (node.type === 'video_gen') {
+    node.data = { tool: document.getElementById('wnVidTool-'+nodeId)?.value||'', params: document.getElementById('wnVidParams-'+nodeId)?.value||'' }
+  } else if (node.type === 'review') {
+    node.data = { result: document.getElementById('wnResult-'+nodeId)?.value||'', notes: document.getElementById('wnNotes-'+nodeId)?.value||'' }
+  }
+  saveCurrentWorkflowSilent()
+}
+
+function toggleNodePreview(elId) {
+  const el = document.getElementById(elId)
+  if (!el) return
+  if (el.style.maxHeight === 'none') {
+    el.style.maxHeight = elId.startsWith('wnPromptPreview') ? '28px' : '40px'
+    el.style.overflow = 'hidden'
+  } else {
+    el.style.maxHeight = 'none'
+    el.style.overflow = 'visible'
+  }
+}
+
+function saveCurrentWorkflowSilent() {
+  const wf = getCurrentWf(); if (!wf) return
+  wf.updatedAt = new Date().toISOString()
+  saveWorkflows()
+}
+
+// ====== MEMO ======
+const MEMO_KEY = 'memo_notes_v1'
+let memos = []
+let currentMemoId = null
+let _memoSaveTimer = null
+
+function loadMemos() { try { const r = localStorage.getItem(MEMO_KEY); memos = r ? JSON.parse(r) : [] } catch(e) { memos = [] } }
+function saveMemos() {
+  localStorage.setItem(MEMO_KEY, JSON.stringify(memos))
+  if (_sbToken) { for (const m of memos) { cloudSaveMemo(m).catch(()=>{}) } }
+}
+
+function initMemoPage() {
+  loadMemos()
+  renderMemoList()
+  if (memos.length > 0 && !currentMemoId) selectMemo(memos[0].id)
+  else if (memos.length === 0) { currentMemoId = null; document.getElementById('memoEditor').style.display = 'none' }
+  document.getElementById('memoCount').textContent = memos.length
+}
+
+function newMemo() {
+  const m = { id: genId('memo'), title: '新笔记', content: '', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
+  memos.unshift(m)
+  saveMemos()
+  renderMemoList()
+  selectMemo(m.id)
+  document.getElementById('memoCount').textContent = memos.length
+}
+
+function selectMemo(id) {
+  currentMemoId = id
+  const m = memos.find(x => x.id === id)
+  if (!m) return
+  document.getElementById('memoEditor').style.display = 'flex'
+  document.getElementById('memoTitleInput').value = m.title || ''
+  document.getElementById('memoTextarea').value = m.content || ''
+  document.getElementById('memoMeta').textContent = '更新于 ' + formatDate(m.updatedAt) + ' · ' + (m.content ? m.content.length + ' 字' : '0 字')
+  renderMemoList()
+}
+
+function onMemoChange() {
+  const m = memos.find(x => x.id === currentMemoId)
+  if (!m) return
+  m.title = document.getElementById('memoTitleInput').value || '新笔记'
+  m.content = document.getElementById('memoTextarea').value
+  m.updatedAt = new Date().toISOString()
+  document.getElementById('memoMeta').textContent = '更新于 ' + formatDate(m.updatedAt) + ' · ' + m.content.length + ' 字'
+  // Debounce save
+  clearTimeout(_memoSaveTimer)
+  _memoSaveTimer = setTimeout(() => { saveMemos(); renderMemoList() }, 500)
+}
+
+function deleteMemo(id, e) {
+  e.stopPropagation()
+  const m = memos.find(x => x.id === id)
+  showConfirm('删除笔记', `确定删除「${m?.title||'笔记'}」吗？`, () => {
+    memos = memos.filter(x => x.id !== id)
+    saveMemos()
+    if (currentMemoId === id) {
+      currentMemoId = memos.length > 0 ? memos[0].id : null
+      if (currentMemoId) selectMemo(currentMemoId)
+      else { document.getElementById('memoEditor').style.display = 'none'; document.getElementById('memoTitleInput').value = ''; document.getElementById('memoTextarea').value = '' }
+    }
+    renderMemoList()
+    document.getElementById('memoCount').textContent = memos.length
+  })
+}
+
+function renderMemoList() {
+  const list = document.getElementById('memoList')
+  if (memos.length === 0) {
+    list.innerHTML = '<div style="text-align:center;padding:40px 16px;color:var(--text3);font-size:13px">暂无笔记<br>点击上方按钮新建</div>'
+    return
+  }
+  list.innerHTML = memos.map(m => {
+    const preview = (m.content || '').slice(0, 40).replace(/\n/g, ' ')
+    return `<div class="memo-item${m.id===currentMemoId?' active':''}" onclick="selectMemo('${m.id}')">
+      <div style="overflow:hidden"><div class="memo-title">${escHtml(m.title||'新笔记')}</div><div style="font-size:10px;color:var(--text3)">${escHtml(preview)||'空'}</div></div>
+      <button class="memo-del" onclick="deleteMemo('${m.id}',event)">✕</button>
+    </div>`
+  }).join('')
+}
+
+function renderLog() {
+  document.getElementById('logCount').textContent = logs.length
+
+  // Tool filter options
+  const logTools = [...new Set(logs.map(l=>l.tool))]
+  document.getElementById('logToolFilter').innerHTML = '<option value="">🔧 全部工具</option>' + logTools.map(t=>`<option value="${t}">${t}</option>`).join('')
+
+  // Summary
+  const now = new Date(), thisMonth = logs.filter(l=>new Date(l.createdAt).getMonth()===now.getMonth()&&new Date(l.createdAt).getFullYear()===now.getFullYear())
+  const totalCost = logs.reduce((s,l)=>s+(l.cost||0),0)
+  const monthCost = thisMonth.reduce((s,l)=>s+(l.cost||0),0)
+  const successCount = logs.filter(l=>l.result==='success').length
+  const successRate = logs.length ? Math.round(successCount/logs.length*100) : 0
+  const totalUsable = logs.reduce((s,l)=>s+(l.usableCount||0),0)
+  document.getElementById('logSummary').innerHTML = `
+    <div class="stat-card"><div class="stat-num cost">${fmtMoney(totalCost)}</div><div class="stat-label">累计花费</div></div>
+    <div class="stat-card"><div class="stat-num success">${successRate}%</div><div class="stat-label">成功率 (${successCount}/${logs.length})</div></div>
+    <div class="stat-card"><div class="stat-num">${totalUsable} 张</div><div class="stat-label">累计可用素材</div></div>
+    <div class="stat-card"><div class="stat-num cost">${fmtMoney(monthCost)}</div><div class="stat-label">本月花费</div></div>
+    <div class="stat-card"><div class="stat-num">${fmtMoney(totalUsable?(totalCost/totalUsable):0)}</div><div class="stat-label">平均成本/可用素材</div></div>
+  `
+
+  // Table
+  const toolFilter = document.getElementById('logToolFilter').value
+  const resultFilter = document.getElementById('logResultFilter').value
+  let filtered = [...logs]
+  if (toolFilter) filtered = filtered.filter(l=>l.tool===toolFilter)
+  if (resultFilter) filtered = filtered.filter(l=>l.result===resultFilter)
+  filtered.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt))
+
+  const tbody = document.getElementById('logTbody')
+  const empty = document.getElementById('logEmpty')
+  if (filtered.length===0) {
+    tbody.innerHTML = ''
+    empty.classList.add('visible')
+  } else {
+    empty.classList.remove('visible')
+    tbody.innerHTML = filtered.map(l => {
+      const linkedPrompt = l.promptId ? prompts.find(p=>p.id===l.promptId) : null
+      return `<tr>
+        <td>${formatDate(l.createdAt)}</td>
+        <td><span class="tool-badge ${toolClass(l.tool)}">${escHtml(l.tool)}</span></td>
+        <td class="prompt-preview" title="${escHtml(l.promptText||'')}">${linkedPrompt ? '🔗 '+escHtml(linkedPrompt.title) : escHtml(l.promptText||'—')}</td>
+        <td class="log-cost">${fmtMoney(l.cost)}</td>
+        <td><span class="log-result ${l.result}">${l.result==='success'?'✅ 成功':l.result==='partial'?'⚠️ 部分可用':'❌ 失败'}</span></td>
+        <td>${l.imageCount||0} / ${l.usableCount||0}</td>
+        <td>${escHtml(l.notes||'—')}</td>
+        <td class="actions-cell">
+          <button onclick="editLog('${l.id}')" title="编辑">✏️</button>
+          <button onclick="deleteLog('${l.id}')" title="删除">🗑</button>
+        </td>
+      </tr>`
+    }).join('')
+  }
+}
+
+function openLogModal(promptId) {
+  editingLogId = null
+  document.getElementById('logModalTitle').textContent = '记录生成'
+  document.getElementById('logPromptId').innerHTML = '<option value="">不关联</option>' + prompts.map(p=>`<option value="${p.id}">${escHtml(p.title)}</option>`).join('')
+  document.getElementById('logPromptId').value = promptId || ''
+  document.getElementById('logTool').value = promptId ? (prompts.find(p=>p.id===promptId)?.tool||'') : ''
+  document.getElementById('logCost').value = promptId ? (prompts.find(p=>p.id===promptId)?.cost||'') : ''
+  document.getElementById('logPromptText').value = promptId ? buildFullPrompt(prompts.find(p=>p.id===promptId)?.dimensions||{}) : ''
+  document.getElementById('logImageCount').value = '4'
+  document.getElementById('logUsableCount').value = ''
+  document.getElementById('logResult').value = 'success'
+  document.getElementById('logNotes').value = ''
+  document.getElementById('logModalOverlay').classList.add('open')
+}
+
+function editLog(id) {
+  const l = logs.find(x=>x.id===id); if (!l) return
+  editingLogId = id
+  document.getElementById('logModalTitle').textContent = '编辑生成记录'
+  document.getElementById('logPromptId').innerHTML = '<option value="">不关联</option>' + prompts.map(p=>`<option value="${p.id}" ${p.id===l.promptId?'selected':''}>${escHtml(p.title)}</option>`).join('')
+  document.getElementById('logPromptId').value = l.promptId||''
+  document.getElementById('logTool').value = l.tool||''
+  document.getElementById('logCost').value = l.cost||''
+  document.getElementById('logPromptText').value = l.promptText||''
+  document.getElementById('logImageCount').value = l.imageCount||4
+  document.getElementById('logUsableCount').value = l.usableCount||''
+  document.getElementById('logResult').value = l.result||'success'
+  document.getElementById('logNotes').value = l.notes||''
+  document.getElementById('logModalOverlay').classList.add('open')
+}
+
+function closeLogModal() { document.getElementById('logModalOverlay').classList.remove('open'); editingLogId = null }
+
+function saveLog() {
+  const tool = document.getElementById('logTool').value
+  const cost = parseFloat(document.getElementById('logCost').value)
+  if (!tool) { showToast('请选择工具'); return }
+  if (isNaN(cost)) { showToast('请填写花费'); return }
+
+  const data = {
+    promptId: document.getElementById('logPromptId').value || null,
+    tool, cost,
+    promptText: document.getElementById('logPromptText').value.trim(),
+    result: document.getElementById('logResult').value,
+    notes: document.getElementById('logNotes').value.trim(),
+    imageCount: parseInt(document.getElementById('logImageCount').value)||0,
+    usableCount: parseInt(document.getElementById('logUsableCount').value)||0,
+  }
+
+  if (editingLogId) {
+    const idx = logs.findIndex(l=>l.id===editingLogId)
+    if (idx>=0) logs[idx] = {...logs[idx], ...data}
+  } else {
+    logs.push({id: genId('log'), ...data, createdAt: new Date().toISOString()})
+  }
+  saveData(LOGS_KEY, logs)
+  closeLogModal()
+  renderLog()
+  showToast('已保存 ✓')
+}
+
+function deleteLog(id) {
+  showConfirm('删除记录', '确定要删除这条生成记录吗？', () => {
+    logs = logs.filter(l=>l.id!==id)
+    saveData(LOGS_KEY, logs)
+    if (_sbToken) cloudDeleteLog(id).catch(()=>{})
+    renderLog()
+    showToast('已删除')
+  })
+}
+
+function exportLogsCSV() {
+  const header = '日期,工具,提示词,成本,结果,生成张数,可用张数,备注'
+  const rows = logs.map(l => [new Date(l.createdAt).toLocaleDateString('zh-CN'),l.tool,(l.promptText||'').replace(/,/g,'，'),l.cost,l.result==='success'?'成功':l.result==='partial'?'部分可用':'失败',l.imageCount||0,l.usableCount||0,(l.notes||'').replace(/,/g,'，')].join(','))
+  const csv = '﻿' + header + '\n' + rows.join('\n')
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8'})
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a'); a.href = url; a.download = 'generation-logs-' + new Date().toISOString().slice(0,10) + '.csv'; a.click()
+  URL.revokeObjectURL(url)
+  showToast('📥 CSV 已导出')
+}
+
+// ====== ATTACHMENT UI ======
+function getExistingAttachmentsForEdit() {
+  if (!editingId) return []
+  const p = prompts.find(x => x.id === editingId)
+  return p ? (p.attachments || []) : []
+}
+
+function getAllAttachments() {
+  const existing = getExistingAttachmentsForEdit().filter(a => !_removedAttachmentIds.includes(a.id))
+  const pending = _pendingAttachments.map((f, i) => ({
+    _pending: true, _idx: i, name: f.name, type: f.type, size: f.size
+  }))
+  return [...existing, ...pending]
+}
+
+async function renderAttachPreview() {
+  const container = document.getElementById('attachPreview')
+  if (!container) return
+  const all = getAllAttachments()
+  if (all.length === 0) { container.innerHTML = ''; return }
+
+  let html = ''
+  for (let i = 0; i < all.length; i++) {
+    const a = all[i]
+    const sizeStr = a.size > 1024*1024 ? (a.size/(1024*1024)).toFixed(1)+'MB' : (a.size/1024).toFixed(0)+'KB'
+    const isVideo = (a.type||'').startsWith('video/')
+    const icon = isVideo ? '🎬' : '🖼️'
+
+    if (a._pending) {
+      html += `<div class="attach-preview-item">
+        <div class="ap-thumb placeholder">${icon}</div>
+        <div class="ap-info"><div class="ap-name">${escHtml(a.name)}</div><div class="ap-meta">${sizeStr} · 待保存</div></div>
+        <button class="ap-remove" onclick="removePendingAttachment(${a._idx})">✕</button>
+      </div>`
+    } else {
+      html += `<div class="attach-preview-item" id="apItem-${a.id}">
+        <div class="ap-thumb placeholder" id="apThumb-${a.id}">${icon}</div>
+        <div class="ap-info"><div class="ap-name">${escHtml(a.name)}</div><div class="ap-meta">${sizeStr}</div></div>
+        <button class="ap-remove" onclick="removeExistingAttachment('${a.id}')">✕</button>
+      </div>`
+    }
+  }
+  container.innerHTML = html
+
+  // Async load thumbnails for existing attachments from disk
+  if (!(await getMediaDir())) return
+  for (const a of all) {
+    if (!a._pending && a._thumbName) {
+      const url = await urlForMediaFile(a._thumbName)
+      if (url) {
+        const thumbEl = document.getElementById('apThumb-' + a.id)
+        if (thumbEl) {
+          thumbEl.className = 'ap-thumb'
+          thumbEl.innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover;border-radius:6px">`
+        }
+      }
+    }
+  }
+}
+
+function onAttachFilesSelected(event) {
+  const files = Array.from(event.target.files || [])
+  event.target.value = ''
+  if (!files.length) return
+
+  const existing = getExistingAttachmentsForEdit().filter(a => !_removedAttachmentIds.includes(a.id))
+  const total = existing.length + _pendingAttachments.length + files.length
+  if (total > MAX_ATTACHMENTS) {
+    showToast(`每个提示词最多添加 ${MAX_ATTACHMENTS} 个附件，当前已有 ${existing.length + _pendingAttachments.length} 个`)
+    return
+  }
+
+  let rejected = []
+  for (const f of files) {
+    const isImg = ALLOWED_IMAGE.includes(f.type)
+    const isVid = ALLOWED_VIDEO.includes(f.type)
+    if (!isImg && !isVid) {
+      rejected.push(`「${f.name}」格式不支持`)
+      continue
+    }
+    if (isImg && f.size > MAX_IMAGE_SIZE) {
+      rejected.push(`「${f.name}」${(f.size/(1024*1024)).toFixed(1)}MB 超过图片限制 10MB`)
+      continue
+    }
+    if (isVid && f.size > MAX_VIDEO_SIZE) {
+      rejected.push(`「${f.name}」${(f.size/(1024*1024)).toFixed(1)}MB 超过视频限制 100MB`)
+      continue
+    }
+    _pendingAttachments.push(f)
+  }
+
+  if (rejected.length) showToast(rejected.join('；'))
+  renderAttachPreview()
+}
+
+function removePendingAttachment(idx) {
+  _pendingAttachments.splice(idx, 1)
+  renderAttachPreview()
+}
+
+function removeExistingAttachment(attachId) {
+  _removedAttachmentIds.push(attachId)
+  renderAttachPreview()
+}
+
+async function processAttachmentsForSave(promptId) {
+  if (!(await getMediaDir())) { showToast('请先选择存储目录'); throw new Error('无存储目录') }
+
+  // Delete removed attachments' files from disk
+  const p = prompts.find(x => x.id === promptId)
+  const removedNames = []
+  if (p) {
+    for (const id of _removedAttachmentIds) {
+      const a = (p.attachments||[]).find(x => x.id === id)
+      if (a) { removedNames.push(a._fileName); removedNames.push(a._thumbName) }
+    }
+  }
+  for (const name of removedNames) {
+    try { await deleteMediaFile(name) } catch(e) { /* ignore */ }
+  }
+
+  // Save pending files to disk
+  const savedMeta = []
+  for (const f of _pendingAttachments) {
+    const attId = genId('att')
+    const isVideo = (f.type||'').startsWith('video/')
+    const fileName = makeFileName(promptId, f.name, false)
+    const thumbName = makeFileName(promptId, f.name, true)
+    let thumbW = 200, thumbH = 150
+
+    // Generate and save thumbnail
+    try {
+      let thumbBlob = null
+      if (isVideo) {
+        const result = await generateVideoThumbnail(f)
+        if (result) { thumbBlob = result.blob; thumbW = result.w; thumbH = result.h }
+      } else {
+        const result = await generateImageThumbnail(f)
+        thumbBlob = result.blob; thumbW = result.w; thumbH = result.h
+      }
+      if (thumbBlob) await writeMediaFile(thumbName, thumbBlob)
+    } catch(e) { /* no thumbnail, keep placeholder */ }
+
+    // Save original file
+    try {
+      await writeMediaFile(fileName, f)
+      savedMeta.push({ id: attId, name: f.name, type: f.type, size: f.size, thumbnailWidth: thumbW, thumbnailHeight: thumbH, _fileName: fileName, _thumbName: thumbName })
+    } catch(e) {
+      showToast(`「${f.name}」保存失败: ${e.message}`)
+    }
+  }
+
+  return savedMeta
+}
+
+// ====== LIGHTBOX ======
+async function openLightbox(promptId, index) {
+  const p = prompts.find(x => x.id === promptId)
+  if (!p || !p.attachments) return
+  const atts = p.attachments
+  if (atts.length === 0) return
+
+  _lightboxPromptId = promptId
+  _lightboxIndex = Math.max(0, Math.min(index, atts.length - 1))
+  await renderLightboxContent()
+  document.getElementById('lightboxOverlay').classList.add('open')
+}
+
+async function renderLightboxContent() {
+  const p = prompts.find(x => x.id === _lightboxPromptId)
+  if (!p) return
+  const atts = p.attachments || []
+  const a = atts[_lightboxIndex]
+  if (!a) return
+
+  // Revoke previous URL
+  if (_lightboxUrl) URL.revokeObjectURL(_lightboxUrl)
+
+  if (a._fileName) {
+    _lightboxUrl = await urlForMediaFile(a._fileName)
+    if (_lightboxUrl) {
+      const isVideo = (a.type||'').startsWith('video/')
+      const content = document.getElementById('lightboxContent')
+      if (isVideo) {
+        content.innerHTML = `<video src="${_lightboxUrl}" controls autoplay loop style="max-width:90vw;max-height:75vh;border-radius:12px"></video>`
+      } else {
+        content.innerHTML = `<img src="${_lightboxUrl}" style="max-width:90vw;max-height:80vh;border-radius:12px;object-fit:contain">`
+      }
+    } else {
+      document.getElementById('lightboxContent').innerHTML = `<div style="color:#fff;text-align:center;padding:40px"><div style="font-size:48px;margin-bottom:12px">📁</div><p>文件未找到（可能已被移动或删除）</p></div>`
+    }
+  } else {
+    document.getElementById('lightboxContent').innerHTML = `<div style="color:#fff;text-align:center;padding:40px"><p>无法加载（旧格式附件，请重新上传）</p></div>`
+  }
+
+  document.getElementById('lightboxInfo').textContent = `${a.name} · 第 ${_lightboxIndex+1}/${atts.length} 张`
+  document.getElementById('lightboxPrev').style.display = _lightboxIndex > 0 ? 'flex' : 'none'
+  document.getElementById('lightboxNext').style.display = _lightboxIndex < atts.length - 1 ? 'flex' : 'none'
+}
+
+function closeLightbox() {
+  document.getElementById('lightboxOverlay').classList.remove('open')
+  if (_lightboxUrl) { URL.revokeObjectURL(_lightboxUrl); _lightboxUrl = null }
+  _lightboxPromptId = null; _lightboxIndex = 0
+}
+
+function lightboxNav(dir) {
+  const p = prompts.find(x => x.id === _lightboxPromptId)
+  if (!p) return
+  const max = (p.attachments || []).length - 1
+  _lightboxIndex = Math.max(0, Math.min(_lightboxIndex + dir, max))
+  renderLightboxContent()
+}
+
+// ====== PROMPT MODAL ======
+function openNewModal() {
+  editingId = null
+  document.getElementById('modalTitle').textContent = '新建提示词'
+  clearPromptForm()
+  switchModalTab('structured')
+  document.getElementById('modalOverlay').classList.add('open')
+}
+
+function openEditModal(id) {
+  const p = prompts.find(x=>x.id===id); if (!p) return
+  editingId = id
+  document.getElementById('modalTitle').textContent = '编辑提示词'
+  document.getElementById('sTitle').value = p.title||''; document.getElementById('sTool').value = p.tool||''
+  document.getElementById('sScenario').value = p.scenario||''; document.getElementById('sMediaType').value = p.mediaType||''
+  document.getElementById('sTags').value = (p.tags||[]).join(', ')
+  document.getElementById('sResult').value = p.result||''; document.getElementById('sRating').value = p.rating||5
+  document.getElementById('sCost').value = p.cost??''
+  const dims = p.dimensions||{}
+  document.getElementById('dSubject').value=dims.subject||''; document.getElementById('dAction').value=dims.action||''
+  document.getElementById('dEnvironment').value=dims.environment||''; document.getElementById('dLighting').value=dims.lighting||''
+  document.getElementById('dComposition').value=dims.composition||''; document.getElementById('dStyle').value=dims.style||''
+  document.getElementById('dQuality').value=dims.quality||''; document.getElementById('dNegative').value=dims.negative||''
+  _pendingAttachments = []; _removedAttachmentIds = []
+  switchModalTab('structured')
+  document.getElementById('modalOverlay').classList.add('open')
+  renderAttachPreview()
+}
+
+function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); editingId=null }
+function switchModalTab(tab) {
+  currentTab=tab
+  document.querySelectorAll('.modal-tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===tab))
+  document.getElementById('tabStructured').style.display=tab==='structured'?'block':'none'
+  document.getElementById('tabFree').style.display=tab==='free'?'block':'none'
+}
+function clearPromptForm() {
+  ['sTitle','sTool','sScenario','sTags','sResult','sMediaType'].forEach(id=>document.getElementById(id).value='')
+  document.getElementById('sRating').value='5'; document.getElementById('sCost').value=''
+  ;['dSubject','dAction','dEnvironment','dLighting','dComposition','dStyle','dQuality','dNegative'].forEach(id=>document.getElementById(id).value='')
+  document.getElementById('freePrompt').value=''; document.getElementById('aiLoading').classList.remove('visible')
+  _pendingAttachments = []; _removedAttachmentIds = []
+  const ap = document.getElementById('attachPreview'); if (ap) ap.innerHTML = ''
+}
+
+function getPromptFormData() {
+  return {
+    title: document.getElementById('sTitle').value.trim(),
+    tool: document.getElementById('sTool').value,
+    mediaType: document.getElementById('sMediaType').value,
+    scenario: document.getElementById('sScenario').value,
+    tags: document.getElementById('sTags').value.split(/[,，]/).map(t=>t.trim()).filter(Boolean),
+    result: document.getElementById('sResult').value.trim(),
+    rating: parseInt(document.getElementById('sRating').value)||5,
+    cost: parseFloat(document.getElementById('sCost').value)||0,
+    dimensions: {
+      subject: document.getElementById('dSubject').value.trim(),
+      action: document.getElementById('dAction').value.trim(),
+      environment: document.getElementById('dEnvironment').value.trim(),
+      lighting: document.getElementById('dLighting').value.trim(),
+      composition: document.getElementById('dComposition').value.trim(),
+      style: document.getElementById('dStyle').value.trim(),
+      quality: document.getElementById('dQuality').value.trim(),
+      negative: document.getElementById('dNegative').value.trim()
+    }
+  }
+}
+
+async function savePrompt() {
+  const data = getPromptFormData()
+  if (!data.title) { showToast('请输入标题'); return }
+  if (!data.tool) { showToast('请选择使用工具'); return }
+  const now = new Date().toISOString()
+  let promptId = editingId
+
+  if (editingId) {
+    const idx = prompts.findIndex(p=>p.id===editingId)
+    if (idx>=0) {
+      // Merge existing attachments (minus removed ones) with pending
+      const existingAtts = (prompts[idx].attachments||[]).filter(a => !_removedAttachmentIds.includes(a.id))
+      prompts[idx] = {...prompts[idx],...data,attachments:existingAtts,updatedAt:now}
+    }
+  } else {
+    promptId = genId('p')
+    prompts.push({id:promptId,...data,usageCount:0,attachments:[],createdAt:now,updatedAt:now})
+  }
+  saveData(STORAGE_KEY, prompts)
+
+  // Process attachments asynchronously
+  if (_pendingAttachments.length > 0 || _removedAttachmentIds.length > 0) {
+    try {
+      const newMeta = await processAttachmentsForSave(promptId)
+      // Update prompt with new attachment metadata
+      const p = prompts.find(x => x.id === promptId)
+      if (p) {
+        const existingAtts = (p.attachments||[]).filter(a => !_removedAttachmentIds.includes(a.id))
+        p.attachments = [...existingAtts, ...newMeta]
+        saveData(STORAGE_KEY, prompts)
+      }
+    } catch(e) {
+      // Directory not set or write error — prompt is already saved
+    }
+  }
+
+  closeModal()
+  renderLibrary()
+  if (currentDetailId === promptId) openDetail(promptId)
+  editingId = null
+  showToast('已保存 ✓')
+}
+
+// ====== AI PARSE ======
+async function aiParsePrompt() {
+  const fullText = document.getElementById('freePrompt').value.trim()
+  if (!fullText) { showToast('请先粘贴提示词内容'); return }
+  document.getElementById('aiLoading').classList.add('visible')
+  try {
+    const res = await fetch(CHAT_API, {
+      method:'POST', headers:{'Authorization':'Bearer '+API_KEY,'Content-Type':'application/json'},
+      body:JSON.stringify({model:VISION_MODEL,messages:[{role:'user',content:`你是提示词分类专家。请将以下提示词原封不动地归类到八维结构中，不要修改、不要优化、不要改写任何文字，只做拆分归类：
+
+规则：
+- subject 主体：画面中的核心对象
+- action 动作：主体的行为/姿态
+- environment 环境：场景/背景
+- lighting 光线：光照描述
+- composition 构图：视角/镜头
+- style 风格：艺术风格
+- quality 画质：清晰度相关
+- negative 负面词：不想要的内容
+
+严格输出 JSON（不要输出其他内容）：
+{"dimensions":{"subject":"原文中关于主体的部分","action":"原文中关于动作的部分","environment":"原文中关于环境的部分","lighting":"原文中关于光线的部分","composition":"原文中关于构图的部分","style":"原文中关于风格的部分","quality":"原文中关于画质的部分","negative":"原文中关于负面词的部分或空"},"suggestedTitle":"根据内容生成的简短标题"}
+
+提示词：${fullText}`}],temperature:0.1,max_tokens:2000})
+    })
+    const data = await res.json()
+    const content = data.choices?.[0]?.message?.content||''
+    const m = content.match(/\{[\s\S]*\}/)
+    if (m) {
+      const p = JSON.parse(m[0])
+      document.getElementById('sTitle').value = p.suggestedTitle||p.title||''
+      const dims = p.dimensions||{}
+      ;['subject','action','environment','lighting','composition','style','quality','negative'].forEach((k,i)=>{
+        const v = dims[k]; document.getElementById('d'+k[0].toUpperCase()+k.slice(1)).value = (v&&v!=='无')?v:''
+      })
+      switchModalTab('structured')
+      showToast('✅ AI 解析完成')
+    } else { showToast('解析失败，请重试') }
+  } catch(e) { showToast('AI 解析出错: '+e.message) }
+  document.getElementById('aiLoading').classList.remove('visible')
+}
+
+// ====== DETAIL PANEL ======
+async function openDetail(id) {
+  const p = prompts.find(x=>x.id===id); if (!p) return
+  currentDetailId = id
+  const full = buildFullPrompt(p.dimensions||{}), stars = '⭐'.repeat(p.rating)+'☆'.repeat(5-p.rating)
+  let dimsHtml = ''
+  for (const [k,l] of Object.entries(DIM_LABELS)) {
+    const v = p.dimensions?.[k]; if (v) dimsHtml += `<div class="detail-dim"><div class="dim-label">${k}. ${l}</div><div class="dim-value">${escHtml(v)}</div></div>`
+  }
+  // Show related logs
+  const relatedLogs = logs.filter(l=>l.promptId===id)
+  let logsHtml = ''
+  if (relatedLogs.length>0) {
+    logsHtml = `<div style="margin-top:20px"><div style="font-size:12px;font-weight:700;color:var(--text3);margin-bottom:8px">📊 生成记录 (${relatedLogs.length})</div>`
+    logsHtml += relatedLogs.map(l=>`<div style="font-size:12px;color:var(--text2);padding:8px 12px;background:var(--bg);border-radius:8px;margin-bottom:4px;display:flex;justify-content:space-between"><span>${formatDate(l.createdAt)} · <span class="log-result ${l.result}" style="font-size:10px">${l.result==='success'?'✅':l.result==='partial'?'⚠️':'❌'}</span> · ${fmtMoney(l.cost)}</span><span>可用 ${l.usableCount||0}/${l.imageCount||0}</span></div>`).join('')
+    logsHtml += '</div>'
+  }
+
+  // Attachment gallery placeholder
+  const atts = p.attachments || []
+  let attachHtml = ''
+  if (atts.length > 0) {
+    attachHtml = `<div class="detail-attachments"><div class="detail-attachments-header">📎 附件 (${atts.length})</div><div class="detail-attachments-grid" id="detailAttachGrid">`
+    attachHtml += atts.map((a, i) => {
+      const isVid = (a.type||'').startsWith('video/')
+      return `<div class="detail-attach-item" onclick="openLightbox('${p.id}',${i})" title="${escHtml(a.name)}"><div class="da-thumb placeholder" id="daThumb-${a.id}">${isVid?'🎬':'🖼️'}</div><div class="da-label">${escHtml(a.name)}</div></div>`
+    }).join('')
+    attachHtml += `</div></div>`
+  }
+
+  document.getElementById('detailTitle').textContent = p.title
+  document.getElementById('detailBody').innerHTML = `
+    <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">${p.mediaType?`<span style="font-size:13px;color:var(--text2);padding:4px 12px;background:var(--bg);border-radius:12px">${p.mediaType==='video'?'🎬 生视频':'🖼️ 生图'}</span>`:''}<span class="tool-badge ${toolClass(p.tool)}">${escHtml(p.tool)}</span>${p.scenario?`<span style="font-size:13px;color:var(--text2);padding:4px 12px;background:var(--bg);border-radius:12px">${escHtml(p.scenario)}</span>`:''}${(p.tags||[]).map(t=>`<span style="font-size:12px;color:var(--primary);background:var(--primary-light);padding:3px 10px;border-radius:12px">${escHtml(t)}</span>`).join('')}</div>
+    <div style="display:flex;gap:16px;margin-bottom:20px;font-size:13px;color:var(--text2)"><span>评分：${stars}</span><span>使用：${p.usageCount||0} 次</span>${p.cost?`<span>成本：${fmtMoney(p.cost)}/次</span>`:''}<span>创建：${formatDate(p.createdAt)}</span></div>
+    ${attachHtml}
+    <div style="margin-bottom:20px"><div style="font-size:11px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">📝 完整提示词</div><div style="background:var(--bg);padding:14px 16px;border-radius:12px;font-size:14px;line-height:1.8;white-space:pre-wrap">${escHtml(full)}</div></div>
+    ${dimsHtml?`<div style="font-size:12px;font-weight:700;color:var(--text3);margin-bottom:12px">🧩 八维结构拆解</div>${dimsHtml}`:''}
+    ${p.result?`<div style="margin-top:16px"><div style="font-size:12px;font-weight:700;color:var(--text3);margin-bottom:6px">💬 效果备注</div><div style="font-size:14px;color:var(--text);line-height:1.6;background:var(--success-light);padding:12px 16px;border-radius:10px">${escHtml(p.result)}</div></div>`:''}
+    ${logsHtml}
+  `
+  document.getElementById('detailCopyBtn').onclick = ()=>copyFullPrompt(id)
+  document.getElementById('detailEditBtn').onclick = ()=>{closeDetail();openEditModal(id)}
+  document.getElementById('detailLogBtn').onclick = ()=>{closeDetail();openLogModal(id)}
+  document.getElementById('detailDeleteBtn').onclick = ()=>{showConfirm('确认删除',`确定要删除「${p.title}」吗？`,()=>{const atts=(p.attachments||[]);prompts=prompts.filter(x=>x.id!==id);saveData(STORAGE_KEY,prompts);if(_sbToken)cloudDeletePrompt(id).catch(()=>{});closeDetail();renderLibrary();showToast('已删除');(async()=>{for(const a of atts){if(a._fileName)await deleteMediaFile(a._fileName);if(a._thumbName)await deleteMediaFile(a._thumbName)}})()})}
+  document.getElementById('detailOverlay').classList.add('open')
+  document.getElementById('detailPanel').classList.add('open')
+
+  // Async load gallery thumbnails from disk
+  if (atts.length > 0 && await getMediaDir()) {
+    for (let i = 0; i < atts.length; i++) {
+      const a = atts[i]
+      const url = a._thumbName ? await urlForMediaFile(a._thumbName) : null
+      if (url) {
+        const thumbEl = document.getElementById('daThumb-' + a.id)
+        if (thumbEl) {
+          thumbEl.className = 'da-thumb'
+          const isVid = (a.type||'').startsWith('video/')
+          thumbEl.innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover">${isVid?`<span style="position:absolute;bottom:4px;right:4px;font-size:10px;background:rgba(0,0,0,0.6);color:#fff;border-radius:3px;padding:1px 4px">▶</span>`:''}`
+          thumbEl.style.position = 'relative'
+        }
+      }
+    }
+  }
+}
+
+function closeDetail() { document.getElementById('detailOverlay').classList.remove('open'); document.getElementById('detailPanel').classList.remove('open'); currentDetailId=null }
+
+// ====== CARD ACTIONS ======
+function copyFullPrompt(id) {
+  const p=prompts.find(x=>x.id===id); if(!p) return
+  navigator.clipboard.writeText(buildFullPrompt(p.dimensions||{})).then(()=>showToast('📋 已复制'))
+}
+function incrementUsage(id) {
+  const p=prompts.find(x=>x.id===id); if(!p) return
+  p.usageCount=(p.usageCount||0)+1; saveData(STORAGE_KEY,prompts); renderLibrary()
+  if(currentDetailId===id) openDetail(id)
+  showToast('✅ 已记录使用')
+}
+
+// ====== EXPORT / IMPORT ======
+function exportData() {
+  const data = JSON.stringify({prompts,logs}, null, 2)
+  const blob = new Blob([data],{type:'application/json'})
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download='prompt-library-' + new Date().toISOString().slice(0,10)+'.json'; a.click()
+  showToast('📤 已导出（提示词+日志，不含附件文件）')
+}
+
+async function exportDataFull() {
+  showToast('正在准备完整导出…')
+  const exportPrompts = []
+  for (const p of prompts) {
+    const atts = p.attachments || []
+    const fullAtts = []
+    for (const a of atts) {
+      const meta = {id:a.id, name:a.name, type:a.type, size:a.size, thumbnailWidth:a.thumbnailWidth, thumbnailHeight:a.thumbnailHeight, _fileName:a._fileName, _thumbName:a._thumbName}
+      // Embed image files as base64 (skip videos)
+      if (a._fileName && !(a.type||'').startsWith('video/')) {
+        const file = await readMediaFile(a._fileName)
+        if (file) {
+          const base64 = await new Promise((resolve) => {
+            const r = new FileReader()
+            r.onload = () => resolve(r.result)
+            r.onerror = () => resolve(null)
+            r.readAsDataURL(file)
+          })
+          if (base64) meta._data = base64
+        }
+      }
+      fullAtts.push(meta)
+    }
+    exportPrompts.push({...p, attachments: fullAtts})
+  }
+  const data = JSON.stringify({prompts:exportPrompts, logs, _hasAttachments:true, _exportDate:new Date().toISOString()}, null, 2)
+  const blob = new Blob([data],{type:'application/json'})
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob)
+  a.download = 'prompt-library-full-' + new Date().toISOString().slice(0,10) + '.json'; a.click()
+  showToast('📦 完整导出（图片已嵌入，视频仅保留元数据）')
+}
+function importData(event) {
+  const file = event.target.files[0]; if(!file) return
+  const reader = new FileReader()
+  reader.onload = async function(e) {
+    try {
+      const imported = JSON.parse(e.target.result)
+      if (imported.prompts && imported.logs) {
+        const hasAttach = imported._hasAttachments
+        showConfirm('导入数据', `发现 ${imported.prompts.length} 条提示词和 ${imported.logs.length} 条日志。${hasAttach?'包含附件数据。':''}合并导入？`,async ()=>{
+          const existingIds = new Set(prompts.map(p=>p.id))
+          const newPrompts = imported.prompts.filter(p=>!existingIds.has(p.id))
+
+          // If has attachments and directory is set, restore files
+          if (hasAttach) {
+            const dir = await getMediaDir()
+            for (const p of newPrompts) {
+              const atts = p.attachments || []
+              const restoredAtts = []
+              for (const a of atts) {
+                if (a._data && dir) {
+                  // Convert base64 back to blob and write to disk
+                  try {
+                    const res = await fetch(a._data)
+                    const blob = await res.blob()
+                    const fileName = makeFileName(p.id, a.name, false)
+                    const thumbName = makeFileName(p.id, a.name, true)
+                    await writeMediaFile(fileName, blob)
+                    // Generate thumbnail
+                    try {
+                      const t = await generateImageThumbnail(blob)
+                      await writeMediaFile(thumbName, t.blob)
+                      restoredAtts.push({id:a.id, name:a.name, type:a.type, size:a.size, thumbnailWidth:t.w, thumbnailHeight:t.h, _fileName:fileName, _thumbName:thumbName})
+                    } catch(e) {
+                      restoredAtts.push({id:a.id, name:a.name, type:a.type, size:a.size, thumbnailWidth:200, thumbnailHeight:150, _fileName:fileName, _thumbName:thumbName})
+                    }
+                  } catch(ex) {
+                    restoredAtts.push({id:a.id, name:a.name, type:a.type, size:a.size})
+                  }
+                } else {
+                  restoredAtts.push({id:a.id, name:a.name, type:a.type, size:a.size, thumbnailWidth:a.thumbnailWidth, thumbnailHeight:a.thumbnailHeight, _fileName:a._fileName, _thumbName:a._thumbName})
+                }
+              }
+              p.attachments = restoredAtts
+            }
+          }
+
+          prompts = [...prompts, ...newPrompts]
+          const existingLogIds = new Set(logs.map(l=>l.id))
+          logs = [...logs, ...imported.logs.filter(l=>!existingLogIds.has(l.id))]
+          saveData(STORAGE_KEY,prompts); saveData(LOGS_KEY,logs)
+          renderAll()
+          showToast(`📥 已导入`)
+        },'合并导入')
+      } else if (Array.isArray(imported)) {
+        // Old format: just prompts
+        showConfirm('导入提示词', `发现 ${imported.length} 条提示词（旧格式）。合并导入？`,()=>{
+          const existingIds = new Set(prompts.map(p=>p.id))
+          prompts = [...prompts, ...imported.filter(p=>!existingIds.has(p.id))]
+          saveData(STORAGE_KEY,prompts)
+          renderAll()
+          showToast(`📥 已导入`)
+        },'合并导入')
+      }
+    } catch(e) { showToast('导入失败：格式不正确') }
+  }
+  reader.readAsText(file)
+  event.target.value = ''
+}
+
+// ====== FEISHU BITABLE EXPORT ======
+function exportBitable() {
+  // Prompt columns for 多维表格
+  const headers = ['标题','工具','场景','标签','评分','单次成本','使用次数','主体','动作','环境','光线','构图','风格','画质','负面词','完整提示词','效果备注','创建日期']
+  const escapeCSV = s => { if (!s) return ''; return '"' + String(s).replace(/"/g,'""').replace(/\n/g,' ').replace(/\r/g,'') + '"' }
+
+  const rows = prompts.map(p => [
+    p.title, p.tool, p.scenario||'', (p.tags||[]).join('/'), p.rating, p.cost||0, p.usageCount||0,
+    p.dimensions?.subject||'', p.dimensions?.action||'', p.dimensions?.environment||'',
+    p.dimensions?.lighting||'', p.dimensions?.composition||'', p.dimensions?.style||'',
+    p.dimensions?.quality||'', p.dimensions?.negative||'',
+    buildFullPrompt(p.dimensions||{}), p.result||'', new Date(p.createdAt).toLocaleDateString('zh-CN')
+  ].map(escapeCSV).join(','))
+
+  const csv = '﻿' + headers.join(',') + '\n' + rows.join('\n')
+
+  // Also generate logs CSV
+  const logHeaders = ['日期','工具','关联提示词','提示词文本','花费','结果','生成张数','可用张数','备注']
+  const logRows = logs.map(l => [
+    new Date(l.createdAt).toLocaleDateString('zh-CN'), l.tool,
+    l.promptId ? (prompts.find(p=>p.id===l.promptId)?.title||'') : '',
+    l.promptText||'', l.cost||0, l.result==='success'?'成功':l.result==='partial'?'部分可用':'失败',
+    l.imageCount||0, l.usableCount||0, l.notes||''
+  ].map(escapeCSV).join(','))
+  const csvLogs = '﻿' + logHeaders.join(',') + '\n' + logRows.join('\n')
+
+  // Open a modal letting user choose
+  showConfirm('导出多维表格 CSV',
+    `将下载两个 CSV 文件，可直接导入飞书多维表格：\n\n📊 提示词库-多维表格.csv（${prompts.length} 条）\n📊 生成日志-多维表格.csv（${logs.length} 条）\n\n导入方式：飞书多维表格 → 新建 → 导入 → 选择 CSV 文件`,
+    () => {
+      downloadCSV(csv, '提示词库-多维表格')
+      setTimeout(() => downloadCSV(csvLogs, '生成日志-多维表格'), 300)
+      showToast('📊 两个 CSV 已下载')
+    },
+    '下载'
+  )
+}
+
+function downloadCSV(csv, name) {
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8'})
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob)
+  a.download = name + '-' + new Date().toISOString().slice(0,10) + '.csv'; a.click()
+}
+
+// ====== FEISHU DOC EXPORT ======
+function exportFeishu() {
+  // Group prompts by tool
+  const groups = {}
+  prompts.forEach(p => {
+    if (!groups[p.tool]) groups[p.tool] = []
+    groups[p.tool].push(p)
+  })
+
+  const lines = []
+  lines.push('# 🎬 AIGC 提示词库 · 团队共享文档')
+  lines.push('')
+  lines.push(`> 📅 导出日期：${new Date().toLocaleDateString('zh-CN')}　|　共 **${prompts.length}** 条提示词　|　覆盖 **${Object.keys(groups).length}** 个工具`)
+  lines.push('')
+  lines.push('---')
+  lines.push('')
+
+  // Tool cost reference table
+  lines.push('## 📊 工具成本参考')
+  lines.push('')
+  lines.push('| 工具 | 单张/条成本 | 最适合场景 |')
+  lines.push('|------|-----------|-----------|')
+  lines.push('| GPT-image2 | ¥0.06 | 批量素材、基础背景图 |')
+  lines.push('| 即梦 | ¥0.17 | 国风、抽卡生成 |')
+  lines.push('| Midjourney | ¥0.14 | 设计感、艺术风格 |')
+  lines.push('| Nano Banana Pro | ¥0.22 | 宠物特写、精准文字 |')
+  lines.push('| Sora2 | ¥0.4-1.2 | 短镜头、产品痛点展示 |')
+  lines.push('| Omni | — | 产品不变形场景 |')
+  lines.push('| Seedance2.0 PC | ¥0.4-1.2 | 爆款视频模仿 |')
+  lines.push('| Seedance2.0 App | ¥0.4-1.2 | 直播间人设科普 |')
+  lines.push('')
+  lines.push('---')
+  lines.push('')
+
+  // Each tool group
+  for (const [tool, items] of Object.entries(groups)) {
+    lines.push(`## 🔧 ${tool}（${items.length} 条）`)
+    lines.push('')
+
+    items.forEach((p, idx) => {
+      const full = buildFullPrompt(p.dimensions || {})
+      const stars = '⭐'.repeat(p.rating)
+
+      lines.push(`### ${idx+1}. ${p.title} ${stars}`)
+      lines.push('')
+      lines.push(`- **场景**：${p.scenario || '未分类'}　|　**成本**：${p.cost ? '¥'+p.cost.toFixed(2)+'/次' : '—'}　|　**使用**：${p.usageCount||0} 次`)
+      if (p.tags && p.tags.length) lines.push(`- **标签**：${p.tags.join('、')}`)
+      lines.push('')
+
+      lines.push('**📝 完整提示词：**')
+      lines.push(full)
+      lines.push('')
+
+      // 8 dimensions
+      if (p.dimensions) {
+        const dims = p.dimensions
+        lines.push('**🧩 八维结构：**')
+        if (dims.subject) lines.push(`1. **主体**：${dims.subject}`)
+        if (dims.action) lines.push(`2. **动作**：${dims.action}`)
+        if (dims.environment) lines.push(`3. **环境**：${dims.environment}`)
+        if (dims.lighting) lines.push(`4. **光线**：${dims.lighting}`)
+        if (dims.composition) lines.push(`5. **构图**：${dims.composition}`)
+        if (dims.style) lines.push(`6. **风格**：${dims.style}`)
+        if (dims.quality) lines.push(`7. **画质**：${dims.quality}`)
+        if (dims.negative) lines.push(`8. **负面词**：${dims.negative}`)
+        lines.push('')
+      }
+
+      if (p.result) {
+        lines.push(`**💬 使用效果：**`)
+        lines.push(`> ${p.result}`)
+        lines.push('')
+      }
+
+      lines.push('---')
+      lines.push('')
+    })
+  }
+
+  // Cost summary from logs
+  if (logs.length > 0) {
+    const totalCost = logs.reduce((s,l) => s + (l.cost||0), 0)
+    const successCount = logs.filter(l => l.result === 'success').length
+    const totalUsable = logs.reduce((s,l) => s + (l.usableCount||0), 0)
+    lines.push('## 📊 成本统计')
+    lines.push('')
+    lines.push(`- 累计花费：**¥${totalCost.toFixed(2)}**`)
+    lines.push(`- 成功率：**${logs.length ? Math.round(successCount/logs.length*100) : 0}%**（${successCount}/${logs.length}）`)
+    lines.push(`- 累计可用素材：**${totalUsable}** 张/条`)
+    lines.push(`- 平均成本/可用素材：**¥${totalUsable ? (totalCost/totalUsable).toFixed(2) : '—'}**`)
+    lines.push('')
+  }
+
+  lines.push('---')
+  lines.push('')
+  lines.push('> 💡 本文档由「提示词库」工具自动生成。团队成员可以在此基础上补充、批注、迭代。')
+
+  const content = lines.join('\n')
+  document.getElementById('feishuContent').textContent = content
+  document.getElementById('feishuModalOverlay').classList.add('open')
+}
+
+function closeFeishuModal() {
+  document.getElementById('feishuModalOverlay').classList.remove('open')
+}
+
+function copyFeishuContent() {
+  const text = document.getElementById('feishuContent').textContent
+  navigator.clipboard.writeText(text).then(() => showToast('📋 已复制，粘贴到飞书文档即可'))
+}
+
+document.getElementById('feishuModalOverlay').addEventListener('click', function(e) {
+  if (e.target === this) closeFeishuModal()
+})
+
+// ====== CONFIRM & TOAST ======
+function showConfirm(title, msg, callback, okText) {
+  document.getElementById('confirmTitle').textContent=title; document.getElementById('confirmMsg').textContent=msg
+  document.getElementById('confirmOkBtn').textContent=okText||'确认'; confirmCallback=callback
+  document.getElementById('confirmOverlay').classList.add('open')
+}
+function closeConfirm() { document.getElementById('confirmOverlay').classList.remove('open'); confirmCallback=null }
+document.getElementById('confirmOkBtn').onclick = function() { if(confirmCallback) confirmCallback(); closeConfirm() }
+
+let toastTimer
+function showToast(msg) {
+  const el=document.getElementById('toast'); el.textContent=msg; el.classList.add('show')
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.classList.remove('show'),2000)
+}
+
+function renderAll() {
+  if (currentPage==='library') renderLibrary()
+  else if (currentPage==='memo') initMemoPage()
+  else if (currentPage==='workflow') initWorkflowPage()
+  else if (currentPage==='log') renderLog()
+}
+
+// ====== KEYBOARD ======
+document.addEventListener('keydown', function(e) {
+  if (e.key==='Escape') {
+    if (document.getElementById('lightboxOverlay').classList.contains('open')) closeLightbox()
+    else if (document.getElementById('modalOverlay').classList.contains('open')) closeModal()
+    else if (document.getElementById('logModalOverlay').classList.contains('open')) closeLogModal()
+    else if (document.getElementById('feishuModalOverlay').classList.contains('open')) closeFeishuModal()
+    else if (document.getElementById('detailPanel').classList.contains('open')) closeDetail()
+    else if (document.getElementById('loginModalOverlay').classList.contains('open')) closeLoginModal()
+    else if (document.getElementById('confirmOverlay').classList.contains('open')) closeConfirm()
+  }
+  if ((e.ctrlKey||e.metaKey)&&e.key==='n') { e.preventDefault(); if (!document.getElementById('modalOverlay').classList.contains('open')) { if(currentPage==='log') openLogModal(); else openNewModal() } }
+  if ((e.ctrlKey||e.metaKey)&&e.key==='s'&&document.getElementById('modalOverlay').classList.contains('open')) { e.preventDefault(); savePrompt() }
+  if ((e.ctrlKey||e.metaKey)&&e.key==='f') { e.preventDefault(); if(currentPage==='library') document.getElementById('searchInput').focus() }
+  // Quick page switch
+  if ((e.ctrlKey||e.metaKey)&&e.key==='1') { e.preventDefault(); switchPage('library') }
+  if ((e.ctrlKey||e.metaKey)&&e.key==='2') { e.preventDefault(); switchPage('template') }
+  if ((e.ctrlKey||e.metaKey)&&e.key==='3') { e.preventDefault(); switchPage('log') }
+  if ((e.ctrlKey||e.metaKey)&&e.key==='4') { e.preventDefault(); switchPage('workflow') }
+  if ((e.ctrlKey||e.metaKey)&&e.key==='5') { e.preventDefault(); switchPage('memo') }
+})
+
+document.getElementById('modalOverlay').addEventListener('click', function(e) { if(e.target===this) closeModal() })
+document.getElementById('logModalOverlay').addEventListener('click', function(e) { if(e.target===this) closeLogModal() })
+document.getElementById('lightboxOverlay').addEventListener('click', function(e) { if(e.target===this) closeLightbox() })
+
+// ====== AUTH ======
+function openLoginModal() { document.getElementById('loginModalOverlay').classList.add('open') }
+function closeLoginModal() { document.getElementById('loginModalOverlay').classList.remove('open') }
+
+function loginWithEmail() { openLoginModal() }
+
+async function doPasswordLogin() {
+  const email = document.getElementById('loginEmail').value.trim()
+  const password = document.getElementById('loginPassword').value
+  if (!email) { document.getElementById('loginMsg').textContent = '请输入邮箱'; return }
+  if (password.length < 6) { document.getElementById('loginMsg').textContent = '密码至少6位'; return }
+
+  document.getElementById('loginMsg').textContent = '登录中…'
+  try {
+    await sbSignIn(email, password)
+    closeLoginModal()
+    showToast('✅ 登录成功')
+    await pullFromCloud()
+    renderAll()
+  } catch(e) {
+    // If user doesn't exist, try sign up
+    if (e.message.includes('400') || e.message.includes('Invalid')) {
+      document.getElementById('loginMsg').textContent = '账号不存在，正在注册…'
+      try {
+        await sbSignUp(email, password)
+        document.getElementById('loginMsg').textContent = '注册成功！请重新输入密码登录'
+      } catch(e2) {
+        document.getElementById('loginMsg').textContent = '注册失败: ' + e2.message
+      }
+    } else {
+      document.getElementById('loginMsg').textContent = '失败: ' + e.message
+    }
+  }
+}
+
+async function doEmailLogin() {
+  const email = document.getElementById('loginEmail').value.trim()
+  if (!email) { document.getElementById('loginMsg').textContent = '请输入邮箱'; return }
+  try {
+    await sbAPI('/auth/v1/otp', { method: 'POST', body: JSON.stringify({ email, create_user: true }) })
+    document.getElementById('loginMsg').textContent = '✅ 已发送！检查邮箱里的登录链接'
+  } catch(e) {
+    document.getElementById('loginMsg').textContent = '发送失败: ' + e.message
+  }
+}
+
+async function logoutUser() {
+  await sbSignOut()
+  showToast('已退出登录')
+  renderAll()
+}
+
+function updateAuthUI() {
+  const loginBtn = document.getElementById('loginBtn'), logoutBtn = document.getElementById('logoutBtn')
+  const status = document.getElementById('userStatus')
+  if (_sbUser) {
+    loginBtn.style.display = 'none'; logoutBtn.style.display = ''
+    status.textContent = '👤 ' + (_sbUser.email || '已登录')
+  } else {
+    loginBtn.style.display = ''; logoutBtn.style.display = 'none'
+    status.textContent = ''
+  }
+}
+
+// ====== CLOUD SYNC ======
+function cloudMode() { return !!_sbToken }
+
+async function cloudLoadPrompts() {
+  const data = await sbFetch('prompts')
+  return (data||[]).map(r=>({id:r.id,title:r.title,tool:r.tool,mediaType:r.media_type,scenario:r.scenario,tags:r.tags||[],result:r.result,rating:r.rating,cost:r.cost,usageCount:r.usage_count,dimensions:r.dimensions||{},attachments:r.attachments||[],createdAt:r.created_at,updatedAt:r.updated_at}))
+}
+async function cloudLoadLogs() {
+  const data = await sbFetch('generation_logs')
+  return (data||[]).map(r=>({id:r.id,promptId:r.prompt_id,tool:r.tool,promptText:r.prompt_text,cost:r.cost,result:r.result,imageCount:r.image_count,usableCount:r.usable_count,notes:r.notes,createdAt:r.created_at}))
+}
+async function cloudLoadWorkflows() {
+  const data = await sbFetch('workflows')
+  return (data||[]).map(r=>({id:r.id,name:r.name,nodes:(r.data||{}).nodes||[],connections:(r.data||{}).connections||[],createdAt:r.created_at,updatedAt:r.updated_at}))
+}
+async function cloudLoadMemos() {
+  const data = await sbFetch('memos')
+  return (data||[]).map(r=>({id:r.id,title:r.title,content:r.content,createdAt:r.created_at,updatedAt:r.updated_at}))
+}
+
+async function cloudSavePrompt(p) {
+  await sbSave('prompts', {id:p.id,title:p.title,tool:p.tool,mediaType:p.mediaType,scenario:p.scenario,tags:p.tags,result:p.result,rating:p.rating,cost:p.cost,usageCount:p.usageCount,dimensions:p.dimensions,attachments:p.attachments,updatedAt:new Date().toISOString()})
+}
+async function cloudSaveLog(l) {
+  await sbSave('generation_logs', {id:l.id,promptId:l.promptId,tool:l.tool,promptText:l.promptText,cost:l.cost,result:l.result,imageCount:l.imageCount,usableCount:l.usableCount,notes:l.notes,createdAt:l.createdAt})
+}
+async function cloudSaveWorkflow(w) {
+  await sbSave('workflows', {id:w.id,name:w.name,data:{nodes:w.nodes,connections:w.connections},updatedAt:new Date().toISOString()})
+}
+async function cloudSaveMemo(m) {
+  await sbSave('memos', {id:m.id,title:m.title,content:m.content,updatedAt:new Date().toISOString()})
+}
+
+async function cloudDeletePrompt(id) { await sbDel('prompts', id) }
+async function cloudDeleteLog(id) { await sbDel('generation_logs', id) }
+async function cloudDeleteWorkflow(id) { await sbDel('workflows', id) }
+async function cloudDeleteMemo(id) { await sbDel('memos', id) }
+
+// Wrap saveData to also push to cloud
+const _origSaveData = saveData
+saveData = function(key, data) {
+  _origSaveData(key, data)
+  if (!_sbToken) return
+  // For prompts: sync each prompt
+  if (key === STORAGE_KEY) {
+    (async () => {
+      for (const p of data) {
+        if (!p.id.startsWith('sample-')) await cloudSavePrompt(p).catch(()=>{})
+      }
+    })()
+  }
+  // For logs: sync each log
+  if (key === LOGS_KEY) {
+    (async () => {
+      for (const l of data) { await cloudSaveLog(l).catch(()=>{}) }
+    })()
+  }
+}
+
+// Login → load from cloud
+async function pullFromCloud() {
+  try {
+    const cp = await cloudLoadPrompts()
+    if (cp.length > 0) { prompts = cp; saveData(STORAGE_KEY, prompts) }
+    const cl = await cloudLoadLogs()
+    if (cl.length > 0) { logs = cl; saveData(LOGS_KEY, logs) }
+    const cw = await cloudLoadWorkflows()
+    if (cw.length > 0) { workflows = cw; saveWorkflows() }
+    const cm = await cloudLoadMemos()
+    if (cm.length > 0) { memos = cm; localStorage.setItem(MEMO_KEY, JSON.stringify(memos)) }
+    if (cp.length || cl.length || cw.length || cm.length) showToast('☁️ 云端数据已同步')
+  } catch(e) { /* offline or error */ }
+}
+
+// Push local data to cloud on first login
+async function pushToCloud() {
+  if (!_sbToken) return
+  const done = localStorage.getItem('_sb_push_v1')
+  if (done) return
+  try {
+    for (const p of prompts) { if (!p.id.startsWith('sample-')) await cloudSavePrompt(p).catch(()=>{}) }
+    for (const l of logs) { if (l.id.length > 8) await cloudSaveLog(l).catch(()=>{}) }
+    for (const w of workflows) { await cloudSaveWorkflow(w).catch(()=>{}) }
+    for (const m of memos) { await cloudSaveMemo(m).catch(()=>{}) }
+    localStorage.setItem('_sb_push_v1', '1')
+    showToast('☁️ 本地数据已上传云端')
+  } catch(e) { /* offline */ }
+}
+
+async function initAuth() {
+  const token = localStorage.getItem('_sb_token')
+  const user = localStorage.getItem('_sb_user')
+  if (token && user) {
+    try {
+      _sbToken = token
+      _sbUser = JSON.parse(user)
+      updateAuthUI()
+      await pullFromCloud()
+      renderAll()
+    } catch(e) { _sbToken = null; _sbUser = null }
+  }
+}
+
+// ====== INIT ======
+initTemplatePage()
+applyPreset('pet_product')
+renderLibrary()
+initMediaDir()
+initAuth()
+</script>
+</body>
+</html>
