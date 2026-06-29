@@ -2404,14 +2404,13 @@ async function savePrompt() {
     }
   }
 
-  // 先同步到云端，再拉回最新数据
-  if (_sbToken) {
-    const p = prompts.find(x => x.id === promptId)
-    if (p) await cloudSavePrompt(p).catch(() => {})
-    await pullFromCloud().catch(() => {})
-  }
   closeModal()
   renderLibrary()
+  // 后台同步到云端
+  if (_sbToken) {
+    const p = prompts.find(x => x.id === promptId)
+    if (p) cloudSavePrompt(p).then(() => pullFromCloud()).catch(() => {})
+  }
   if (currentDetailId === promptId) openDetail(promptId)
   editingId = null
   showToast('已保存 ✓')
