@@ -2339,8 +2339,13 @@ async function savePrompt() {
     }
   }
 
+  // 先同步到云端，再拉回最新数据
+  if (_sbToken) {
+    const p = prompts.find(x => x.id === promptId)
+    if (p) await cloudSavePrompt(p).catch(() => {})
+    await pullFromCloud().catch(() => {})
+  }
   closeModal()
-  await pullFromCloud()
   renderLibrary()
   if (currentDetailId === promptId) openDetail(promptId)
   editingId = null
