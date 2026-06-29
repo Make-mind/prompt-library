@@ -381,6 +381,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-body">
         <button class="btn btn-primary" onclick="openNewModal()" style="margin-bottom:20px">＋ 新建提示词</button>
+        <div class="filter-group"><div class="filter-label">🏷️ 品牌筛选</div><div class="filter-chips" id="brandFilter">
+          <span class="chip" data-brand="Hoopet">Hoopet</span><span class="chip" data-brand="富美内特">富美内特</span>
+        </div></div>
         <div class="filter-group"><div class="filter-label">📂 类型筛选</div><div class="filter-chips" id="mediaTypeFilter">
           <span class="chip" data-mtype="image">🖼️ 生图</span><span class="chip" data-mtype="video">🎬 生视频</span>
         </div></div>
@@ -560,6 +563,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
         </div>
         <div class="form-row">
           <div class="form-group"><label class="form-label">类型</label><select class="form-select" id="sMediaType"><option value="">不限</option><option value="image">🖼️ 生图提示词</option><option value="video">🎬 生视频提示词</option></select></div>
+          <div class="form-group"><label class="form-label">品牌</label><select class="form-select" id="sBrand"><option value="">不限</option><option value="Hoopet">Hoopet</option><option value="富美内特">富美内特</option><option value="其他">其他品牌</option></select></div>
           <div class="form-group"><label class="form-label">使用场景</label><select class="form-select" id="sScenario"><option value="">请选择</option><option value="静物延申">静物延申</option><option value="使用图延申">使用图延申</option><option value="多猫互动">多猫互动</option><option value="图生视频">图生视频</option><option value="真人替换">真人替换</option><option value="爆款模仿">爆款模仿</option><option value="产品痛点">产品痛点</option><option value="直播切片">直播切片</option><option value="其他">其他场景</option></select></div>
         </div>
         <div class="form-row">
@@ -700,6 +704,7 @@ const SB_URL = 'https://midkfhmgmaoxmyrhiopz.supabase.co'
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1pZGtmaG1nbWFveG15cmhpb3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0NDkxMDIsImV4cCI6MjA5ODAyNTEwMn0.SR2OIwOVDPx77fhWL50LnHVvD29RrYi1W3aesGOgOYQ'
 let _sbUser = null
 let _sbToken = null
+let _sbRefreshToken = null
 
 async function sbAPI(path, options = {}) {
   const headers = {
@@ -710,8 +715,20 @@ async function sbAPI(path, options = {}) {
   if (_sbToken) headers['Authorization'] = 'Bearer ' + _sbToken
   const res = await fetch(SB_URL + path, { ...options, headers })
   if (!res.ok) {
+    // Auto-refresh token on 401
+    if (res.status === 401 && _sbRefreshToken) {
+      const ok = await sbRefreshToken()
+      if (ok) {
+        // Retry with new token
+        headers['Authorization'] = 'Bearer ' + _sbToken
+        const retry = await fetch(SB_URL + path, { ...options, headers })
+        if (retry.ok) {
+          const t = await retry.text()
+          return t ? JSON.parse(t) : null
+        }
+      }
+    }
     const text = await res.text()
-    console.error('API Error', path, res.status, text)
     throw new Error(text || 'HTTP ' + res.status)
   }
   const text = await res.text()
@@ -724,10 +741,26 @@ async function sbSignIn(email, password) {
     method: 'POST', body: JSON.stringify({ email, password })
   })
   _sbToken = data.access_token
+  _sbRefreshToken = data.refresh_token
   _sbUser = data.user
   localStorage.setItem('_sb_token', _sbToken)
+  localStorage.setItem('_sb_refresh_token', _sbRefreshToken)
   localStorage.setItem('_sb_user', JSON.stringify(_sbUser))
   updateAuthUI()
+}
+
+async function sbRefreshToken() {
+  if (!_sbRefreshToken) return false
+  try {
+    const data = await sbAPI('/auth/v1/token?grant_type=refresh_token', {
+      method: 'POST', body: JSON.stringify({ refresh_token: _sbRefreshToken })
+    })
+    _sbToken = data.access_token
+    _sbRefreshToken = data.refresh_token
+    localStorage.setItem('_sb_token', _sbToken)
+    localStorage.setItem('_sb_refresh_token', _sbRefreshToken)
+    return true
+  } catch(e) { return false }
 }
 
 async function sbSignUp(email, password) {
@@ -739,8 +772,8 @@ async function sbSignUp(email, password) {
 
 async function sbSignOut() {
   try { await sbAPI('/auth/v1/logout', { method: 'POST' }) } catch(e) {}
-  _sbToken = null; _sbUser = null
-  localStorage.removeItem('_sb_token'); localStorage.removeItem('_sb_user')
+  _sbToken = null; _sbUser = null; _sbRefreshToken = null
+  localStorage.removeItem('_sb_token'); localStorage.removeItem('_sb_user'); localStorage.removeItem('_sb_refresh_token')
   updateAuthUI()
 }
 
@@ -1077,7 +1110,7 @@ let prompts = loadData(STORAGE_KEY, SAMPLE_PROMPTS)
 let logs = loadData(LOGS_KEY, SAMPLE_LOGS)
 let currentPage = 'library'
 let editingId = null, editingLogId = null, currentTab = 'structured', currentView = 'grid'
-let activeToolFilter = null, activeScenarioFilter = null, activeRatingFilter = null, activeTagFilter = null, activeMediaTypeFilter = null
+let activeToolFilter = null, activeScenarioFilter = null, activeRatingFilter = null, activeTagFilter = null, activeMediaTypeFilter = null, activeBrandFilter = null
 let sortBy = 'newest', searchQuery = '', currentDetailId = null, confirmCallback = null
 let tplCurrentPreset = 'pet_product'
 let _pendingAttachments = []      // File objects to save
@@ -1138,6 +1171,7 @@ function renderLibrary() {
 
 function filteredPrompts() {
   let list = [...prompts]
+  if (activeBrandFilter) list = list.filter(p => (p.brand||'') === activeBrandFilter)
   if (activeMediaTypeFilter) list = list.filter(p => (p.mediaType||'') === activeMediaTypeFilter)
   if (activeToolFilter) list = list.filter(p => p.tool === activeToolFilter)
   if (activeScenarioFilter) list = list.filter(p => p.scenario === activeScenarioFilter)
@@ -1161,6 +1195,7 @@ function renderSidebar() {
   prompts.forEach(p=>{toolCounts[p.tool]=(toolCounts[p.tool]||0)+1; scenarioCounts[p.scenario]=(scenarioCounts[p.scenario]||0)+1; (p.tags||[]).forEach(t=>{tagCounts[t]=(tagCounts[t]||0)+1})})
   document.getElementById('toolFilter').innerHTML = TOOLS.map(t => `<span class="chip${activeToolFilter===t?' active':''}" onclick="setToolFilter('${t.replace(/'/g,"\\'")}')">${t}<span class="count">${toolCounts[t]||0}</span></span>`).join('')
   document.getElementById('scenarioFilter').innerHTML = SCENARIOS.map(s => `<span class="chip${activeScenarioFilter===s?' active':''}" onclick="setScenarioFilter('${s.replace(/'/g,"\\'")}')">${s}<span class="count">${scenarioCounts[s]||0}</span></span>`).join('')
+  document.querySelectorAll('#brandFilter .chip').forEach(c => { c.classList.toggle('active', activeBrandFilter===c.dataset.brand); c.onclick = () => setBrandFilter(c.dataset.brand) })
   document.querySelectorAll('#mediaTypeFilter .chip').forEach(c => { c.classList.toggle('active', activeMediaTypeFilter===c.dataset.mtype); c.onclick = () => setMediaTypeFilter(c.dataset.mtype) })
   document.querySelectorAll('#ratingFilter .chip').forEach(c => { c.classList.toggle('active', activeRatingFilter===c.dataset.rating); c.onclick = () => setRatingFilter(c.dataset.rating) })
   const sortedTags = Object.entries(tagCounts).sort((a,b)=>b[1]-a[1]).slice(0,15)
@@ -1181,7 +1216,8 @@ function renderPrompts() {
       const full = buildFullPrompt(p.dimensions||{}), stars = '⭐'.repeat(p.rating)+'☆'.repeat(5-p.rating)
       const attCount = (p.attachments||[]).length
       const typeIcon = p.mediaType==='video'?'🎬':p.mediaType==='image'?'🖼️':''
-      return `<div class="prompt-card" data-prompt-id="${p.id}" onclick="openDetail('${p.id}')"><div class="card-header"><div class="card-title">${typeIcon?typeIcon+' ':''}${escHtml(p.title)}</div><div class="card-actions" onclick="event.stopPropagation()"><button onclick="copyFullPrompt('${p.id}')" title="复制">📋</button><button onclick="incrementUsage('${p.id}')" title="标记使用">✅</button></div></div><div class="card-meta"><span class="tool-badge ${toolClass(p.tool)}">${escHtml(p.tool)}</span>${p.scenario?`<span style="font-size:11px;color:var(--text3);padding:3px 8px;background:var(--bg);border-radius:10px">${escHtml(p.scenario)}</span>`:''}${(p.tags||[]).slice(0,2).map(t=>`<span style="font-size:10px;color:var(--primary);background:var(--primary-light);padding:2px 8px;border-radius:10px">${escHtml(t)}</span>`).join('')}${attCount>0?`<span style="font-size:10px;color:var(--text3);padding:2px 8px;background:var(--bg);border-radius:10px">📎${attCount}</span>`:''}</div><div class="card-preview">${escHtml(full)}</div>${attCount>0?`<div class="card-thumbs" data-prompt-id="${p.id}"></div>`:''}<div class="card-footer"><span class="stars">${stars}</span><span>🔄 ${p.usageCount||0}次 · ${formatDate(p.createdAt)}</span></div></div>`
+      const brandBadge = p.brand ? `<span style="font-size:10px;color:#fff;background:var(--primary);padding:2px 8px;border-radius:10px;font-weight:600">${escHtml(p.brand)}</span>` : ''
+      return `<div class="prompt-card" data-prompt-id="${p.id}" onclick="openDetail('${p.id}')"><div class="card-header"><div class="card-title">${typeIcon?typeIcon+' ':''}${escHtml(p.title)}</div><div class="card-actions" onclick="event.stopPropagation()"><button onclick="copyFullPrompt('${p.id}')" title="复制">📋</button><button onclick="incrementUsage('${p.id}')" title="标记使用">✅</button></div></div><div class="card-meta">${brandBadge}<span class="tool-badge ${toolClass(p.tool)}">${escHtml(p.tool)}</span>${p.scenario?`<span style="font-size:11px;color:var(--text3);padding:3px 8px;background:var(--bg);border-radius:10px">${escHtml(p.scenario)}</span>`:''}${(p.tags||[]).slice(0,2).map(t=>`<span style="font-size:10px;color:var(--primary);background:var(--primary-light);padding:2px 8px;border-radius:10px">${escHtml(t)}</span>`).join('')}${attCount>0?`<span style="font-size:10px;color:var(--text3);padding:2px 8px;background:var(--bg);border-radius:10px">📎${attCount}</span>`:''}</div><div class="card-preview">${escHtml(full)}</div>${attCount>0?`<div class="card-thumbs" data-prompt-id="${p.id}"></div>`:''}<div class="card-footer"><span class="stars">${stars}</span><span>🔄 ${p.usageCount||0}次 · ${formatDate(p.createdAt)}</span></div></div>`
     }).join('')
     // Async load card thumbnails
     loadCardThumbnails(filtered)
@@ -1215,6 +1251,7 @@ async function loadCardThumbnails(filteredList) {
   }
 }
 
+function setBrandFilter(v) { activeBrandFilter = activeBrandFilter===v ? null : v; renderLibrary() }
 function setMediaTypeFilter(v) { activeMediaTypeFilter = activeMediaTypeFilter===v ? null : v; renderLibrary() }
 function setToolFilter(v) { activeToolFilter = activeToolFilter===v ? null : v; renderLibrary() }
 function setScenarioFilter(v) { activeScenarioFilter = activeScenarioFilter===v ? null : v; renderLibrary() }
@@ -2250,6 +2287,7 @@ function openEditModal(id) {
   document.getElementById('modalTitle').textContent = '编辑提示词'
   document.getElementById('sTitle').value = p.title||''; document.getElementById('sTool').value = p.tool||''
   document.getElementById('sScenario').value = p.scenario||''; document.getElementById('sMediaType').value = p.mediaType||''
+  document.getElementById('sBrand').value = p.brand||''
   document.getElementById('sTags').value = (p.tags||[]).join(', ')
   document.getElementById('sResult').value = p.result||''; document.getElementById('sRating').value = p.rating||5
   document.getElementById('sCost').value = p.cost??''
@@ -2272,7 +2310,7 @@ function switchModalTab(tab) {
   document.getElementById('tabFree').style.display=tab==='free'?'block':'none'
 }
 function clearPromptForm() {
-  ['sTitle','sTool','sScenario','sTags','sResult','sMediaType'].forEach(id=>document.getElementById(id).value='')
+  ['sTitle','sTool','sScenario','sTags','sResult','sMediaType','sBrand'].forEach(id=>document.getElementById(id).value='')
   document.getElementById('sRating').value='5'; document.getElementById('sCost').value=''
   ;['dSubject','dAction','dEnvironment','dLighting','dComposition','dStyle','dQuality','dNegative'].forEach(id=>document.getElementById(id).value='')
   document.getElementById('freePrompt').value=''; document.getElementById('aiLoading').classList.remove('visible')
@@ -2285,6 +2323,7 @@ function getPromptFormData() {
     title: document.getElementById('sTitle').value.trim(),
     tool: document.getElementById('sTool').value,
     mediaType: document.getElementById('sMediaType').value,
+    brand: document.getElementById('sBrand').value,
     scenario: document.getElementById('sScenario').value,
     tags: document.getElementById('sTags').value.split(/[,，]/).map(t=>t.trim()).filter(Boolean),
     result: document.getElementById('sResult').value.trim(),
@@ -2426,7 +2465,7 @@ async function openDetail(id) {
 
   document.getElementById('detailTitle').textContent = p.title
   document.getElementById('detailBody').innerHTML = `
-    <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">${p.mediaType?`<span style="font-size:13px;color:var(--text2);padding:4px 12px;background:var(--bg);border-radius:12px">${p.mediaType==='video'?'🎬 生视频':'🖼️ 生图'}</span>`:''}<span class="tool-badge ${toolClass(p.tool)}">${escHtml(p.tool)}</span>${p.scenario?`<span style="font-size:13px;color:var(--text2);padding:4px 12px;background:var(--bg);border-radius:12px">${escHtml(p.scenario)}</span>`:''}${(p.tags||[]).map(t=>`<span style="font-size:12px;color:var(--primary);background:var(--primary-light);padding:3px 10px;border-radius:12px">${escHtml(t)}</span>`).join('')}</div>
+    <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">${p.brand?`<span style="font-size:13px;color:#fff;background:var(--primary);padding:4px 12px;border-radius:12px;font-weight:600">${escHtml(p.brand)}</span>`:''}${p.mediaType?`<span style="font-size:13px;color:var(--text2);padding:4px 12px;background:var(--bg);border-radius:12px">${p.mediaType==='video'?'🎬 生视频':'🖼️ 生图'}</span>`:''}<span class="tool-badge ${toolClass(p.tool)}">${escHtml(p.tool)}</span>${p.scenario?`<span style="font-size:13px;color:var(--text2);padding:4px 12px;background:var(--bg);border-radius:12px">${escHtml(p.scenario)}</span>`:''}${(p.tags||[]).map(t=>`<span style="font-size:12px;color:var(--primary);background:var(--primary-light);padding:3px 10px;border-radius:12px">${escHtml(t)}</span>`).join('')}</div>
     <div style="display:flex;gap:16px;margin-bottom:20px;font-size:13px;color:var(--text2)"><span>评分：${stars}</span><span>使用：${p.usageCount||0} 次</span>${p.cost?`<span>成本：${fmtMoney(p.cost)}/次</span>`:''}<span>创建：${formatDate(p.createdAt)}</span></div>
     ${attachHtml}
     <div style="margin-bottom:20px"><div style="font-size:11px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">📝 完整提示词</div><div style="background:var(--bg);padding:14px 16px;border-radius:12px;font-size:14px;line-height:1.8;white-space:pre-wrap">${escHtml(full)}</div></div>
@@ -2990,14 +3029,16 @@ async function pushMediaToCloud() {
 async function initAuth() {
   const token = localStorage.getItem('_sb_token')
   const user = localStorage.getItem('_sb_user')
+  const refresh = localStorage.getItem('_sb_refresh_token')
   if (token && user) {
     try {
       _sbToken = token
+      _sbRefreshToken = refresh
       _sbUser = JSON.parse(user)
       updateAuthUI()
       await pullFromCloud()
       renderAll()
-    } catch(e) { _sbToken = null; _sbUser = null }
+    } catch(e) { _sbToken = null; _sbUser = null; _sbRefreshToken = null }
   }
 }
 
