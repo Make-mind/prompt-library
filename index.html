@@ -381,6 +381,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-body">
         <button class="btn btn-primary" onclick="openNewModal()" style="margin-bottom:20px">＋ 新建提示词</button>
+        <div class="filter-group"><div class="filter-label">📌 按模板筛选</div><div class="filter-chips" id="templateFilter">
+          <span class="chip" data-tpl="1">📌 复用模板</span><span class="chip" data-tpl="0">📄 普通提示词</span>
+        </div></div>
         <div class="filter-group"><div class="filter-label">🏷️ 品牌筛选</div><div class="filter-chips" id="brandFilter">
           <span class="chip" data-brand="Hoopet">Hoopet</span><span class="chip" data-brand="富美内特">富美内特</span>
         </div></div>
@@ -429,6 +432,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
                 <button class="tmpl-preset" data-preset="trending" onclick="applyPreset('trending')">🔥 爆款带货</button>
                 <button class="tmpl-preset" data-preset="portrait" onclick="applyPreset('portrait')">📸 宠物肖像</button>
                 <button class="tmpl-preset" data-preset="scene" onclick="applyPreset('scene')">🏠 使用场景</button>
+                <button class="tmpl-preset" data-preset="swap_bg" onclick="applyPreset('swap_bg')">🔄 换背景</button>
+                <button class="tmpl-preset" data-preset="swap_pet" onclick="applyPreset('swap_pet')">🔄 换宠物</button>
               </div>
             </div>
             <div class="form-group"><label class="form-label">宠物/主体类型</label><select class="form-select" id="tpPetType" onchange="onTmplChange()"><option value="">请选择</option></select></div>
@@ -565,6 +570,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
           <div class="form-group"><label class="form-label">类型</label><select class="form-select" id="sMediaType"><option value="">不限</option><option value="image">🖼️ 生图提示词</option><option value="video">🎬 生视频提示词</option></select></div>
           <div class="form-group"><label class="form-label">品牌</label><select class="form-select" id="sBrand"><option value="">不限</option><option value="Hoopet">Hoopet</option><option value="富美内特">富美内特</option><option value="其他">其他品牌</option></select></div>
           <div class="form-group"><label class="form-label">使用场景</label><select class="form-select" id="sScenario"><option value="">请选择</option><option value="静物延申">静物延申</option><option value="使用图延申">使用图延申</option><option value="多猫互动">多猫互动</option><option value="图生视频">图生视频</option><option value="真人替换">真人替换</option><option value="爆款模仿">爆款模仿</option><option value="产品痛点">产品痛点</option><option value="直播切片">直播切片</option><option value="其他">其他场景</option></select></div>
+        </div>
+        <div class="form-group" style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+          <input type="checkbox" id="sIsTemplate" style="width:18px;height:18px;cursor:pointer">
+          <label for="sIsTemplate" style="font-size:13px;font-weight:600;color:var(--text);cursor:pointer">📌 设为复用模板</label>
         </div>
         <div class="form-row">
           <div class="form-group" style="grid-column:1/-1"><label class="form-label">标签 <span class="hint">（逗号分隔）</span></label><input class="form-input" id="sTags" placeholder="如：宠物, 猫, 实拍+AI"></div>
@@ -1110,7 +1119,7 @@ let prompts = loadData(STORAGE_KEY, SAMPLE_PROMPTS)
 let logs = loadData(LOGS_KEY, SAMPLE_LOGS)
 let currentPage = 'library'
 let editingId = null, editingLogId = null, currentTab = 'structured', currentView = 'grid'
-let activeToolFilter = null, activeScenarioFilter = null, activeRatingFilter = null, activeTagFilter = null, activeMediaTypeFilter = null, activeBrandFilter = null
+let activeToolFilter = null, activeScenarioFilter = null, activeRatingFilter = null, activeTagFilter = null, activeMediaTypeFilter = null, activeBrandFilter = null, activeTemplateFilter = null
 let sortBy = 'newest', searchQuery = '', currentDetailId = null, confirmCallback = null
 let tplCurrentPreset = 'pet_product'
 let _pendingAttachments = []      // File objects to save
@@ -1171,6 +1180,7 @@ function renderLibrary() {
 
 function filteredPrompts() {
   let list = [...prompts]
+  if (activeTemplateFilter !== null) list = list.filter(p => (p.isTemplate ? 1 : 0) === activeTemplateFilter)
   if (activeBrandFilter) list = list.filter(p => (p.brand||'') === activeBrandFilter)
   if (activeMediaTypeFilter) list = list.filter(p => (p.mediaType||'') === activeMediaTypeFilter)
   if (activeToolFilter) list = list.filter(p => p.tool === activeToolFilter)
@@ -1195,6 +1205,7 @@ function renderSidebar() {
   prompts.forEach(p=>{toolCounts[p.tool]=(toolCounts[p.tool]||0)+1; scenarioCounts[p.scenario]=(scenarioCounts[p.scenario]||0)+1; (p.tags||[]).forEach(t=>{tagCounts[t]=(tagCounts[t]||0)+1})})
   document.getElementById('toolFilter').innerHTML = TOOLS.map(t => `<span class="chip${activeToolFilter===t?' active':''}" onclick="setToolFilter('${t.replace(/'/g,"\\'")}')">${t}<span class="count">${toolCounts[t]||0}</span></span>`).join('')
   document.getElementById('scenarioFilter').innerHTML = SCENARIOS.map(s => `<span class="chip${activeScenarioFilter===s?' active':''}" onclick="setScenarioFilter('${s.replace(/'/g,"\\'")}')">${s}<span class="count">${scenarioCounts[s]||0}</span></span>`).join('')
+  document.querySelectorAll('#templateFilter .chip').forEach(c => { c.classList.toggle('active', activeTemplateFilter===parseInt(c.dataset.tpl)); c.onclick = () => setTemplateFilter(parseInt(c.dataset.tpl)) })
   document.querySelectorAll('#brandFilter .chip').forEach(c => { c.classList.toggle('active', activeBrandFilter===c.dataset.brand); c.onclick = () => setBrandFilter(c.dataset.brand) })
   document.querySelectorAll('#mediaTypeFilter .chip').forEach(c => { c.classList.toggle('active', activeMediaTypeFilter===c.dataset.mtype); c.onclick = () => setMediaTypeFilter(c.dataset.mtype) })
   document.querySelectorAll('#ratingFilter .chip').forEach(c => { c.classList.toggle('active', activeRatingFilter===c.dataset.rating); c.onclick = () => setRatingFilter(c.dataset.rating) })
@@ -1216,8 +1227,9 @@ function renderPrompts() {
       const full = buildFullPrompt(p.dimensions||{}), stars = '⭐'.repeat(p.rating)+'☆'.repeat(5-p.rating)
       const attCount = (p.attachments||[]).length
       const typeIcon = p.mediaType==='video'?'🎬':p.mediaType==='image'?'🖼️':''
+      const tplIcon = p.isTemplate ? '📌' : ''
       const brandBadge = p.brand ? `<span style="font-size:10px;color:#fff;background:var(--primary);padding:2px 8px;border-radius:10px;font-weight:600">${escHtml(p.brand)}</span>` : ''
-      return `<div class="prompt-card" data-prompt-id="${p.id}" onclick="openDetail('${p.id}')"><div class="card-header"><div class="card-title">${typeIcon?typeIcon+' ':''}${escHtml(p.title)}</div><div class="card-actions" onclick="event.stopPropagation()"><button onclick="copyFullPrompt('${p.id}')" title="复制">📋</button><button onclick="incrementUsage('${p.id}')" title="标记使用">✅</button></div></div><div class="card-meta">${brandBadge}<span class="tool-badge ${toolClass(p.tool)}">${escHtml(p.tool)}</span>${p.scenario?`<span style="font-size:11px;color:var(--text3);padding:3px 8px;background:var(--bg);border-radius:10px">${escHtml(p.scenario)}</span>`:''}${(p.tags||[]).slice(0,2).map(t=>`<span style="font-size:10px;color:var(--primary);background:var(--primary-light);padding:2px 8px;border-radius:10px">${escHtml(t)}</span>`).join('')}${attCount>0?`<span style="font-size:10px;color:var(--text3);padding:2px 8px;background:var(--bg);border-radius:10px">📎${attCount}</span>`:''}</div><div class="card-preview">${escHtml(full)}</div>${attCount>0?`<div class="card-thumbs" data-prompt-id="${p.id}"></div>`:''}<div class="card-footer"><span class="stars">${stars}</span><span>🔄 ${p.usageCount||0}次 · ${formatDate(p.createdAt)}</span></div></div>`
+      return `<div class="prompt-card" data-prompt-id="${p.id}" onclick="openDetail('${p.id}')"><div class="card-header"><div class="card-title">${tplIcon}${typeIcon?typeIcon+' ':''}${escHtml(p.title)}</div><div class="card-actions" onclick="event.stopPropagation()"><button onclick="copyFullPrompt('${p.id}')" title="复制">📋</button><button onclick="incrementUsage('${p.id}')" title="标记使用">✅</button></div></div><div class="card-meta">${brandBadge}<span class="tool-badge ${toolClass(p.tool)}">${escHtml(p.tool)}</span>${p.scenario?`<span style="font-size:11px;color:var(--text3);padding:3px 8px;background:var(--bg);border-radius:10px">${escHtml(p.scenario)}</span>`:''}${(p.tags||[]).slice(0,2).map(t=>`<span style="font-size:10px;color:var(--primary);background:var(--primary-light);padding:2px 8px;border-radius:10px">${escHtml(t)}</span>`).join('')}${attCount>0?`<span style="font-size:10px;color:var(--text3);padding:2px 8px;background:var(--bg);border-radius:10px">📎${attCount}</span>`:''}</div><div class="card-preview">${escHtml(full)}</div>${attCount>0?`<div class="card-thumbs" data-prompt-id="${p.id}"></div>`:''}<div class="card-footer"><span class="stars">${stars}</span><span>🔄 ${p.usageCount||0}次 · ${formatDate(p.createdAt)}</span></div></div>`
     }).join('')
     // Async load card thumbnails
     loadCardThumbnails(filtered)
@@ -1251,6 +1263,7 @@ async function loadCardThumbnails(filteredList) {
   }
 }
 
+function setTemplateFilter(v) { activeTemplateFilter = activeTemplateFilter===v ? null : v; renderLibrary() }
 function setBrandFilter(v) { activeBrandFilter = activeBrandFilter===v ? null : v; renderLibrary() }
 function setMediaTypeFilter(v) { activeMediaTypeFilter = activeMediaTypeFilter===v ? null : v; renderLibrary() }
 function setToolFilter(v) { activeToolFilter = activeToolFilter===v ? null : v; renderLibrary() }
@@ -1300,7 +1313,9 @@ function applyPreset(preset) {
     pain_point: {pet:'cat',scenario:'pain_point',style:'real',light:'natural_bright',comp:'closeup',quality:'4k',tool:'即梦',neg:'不要美化效果，不要模糊'},
     trending: {pet:'dog',scenario:'trending',style:'warm',light:'warm',comp:'overhead',quality:'4k',tool:'Seedance2.0 PC',neg:'不要冷色调，不要静态摆拍'},
     portrait: {pet:'cat',scenario:'portrait',style:'minimal',light:'softbox',comp:'eye_level',quality:'8k',tool:'GPT-image2',neg:'不要复杂背景，不要暗调'},
-    scene: {pet:'product',scenario:'multi_pet',style:'warm',light:'natural_soft',comp:'wide',quality:'4k',tool:'GPT-image2',neg:'不要卡通'}
+    scene: {pet:'product',scenario:'multi_pet',style:'warm',light:'natural_soft',comp:'wide',quality:'4k',tool:'GPT-image2',neg:'不要卡通'},
+    swap_bg: {pet:'cat',scenario:'still_life',style:'warm',light:'natural_soft',comp:'medium',quality:'4k',tool:'GPT-image2',neg:'不要卡通，不要模糊',hint:'保留主体，只替换背景环境'},
+    swap_pet: {pet:'dog',scenario:'multi_pet',style:'real',light:'natural_soft',comp:'medium',quality:'4k',tool:'GPT-image2',neg:'不要卡通，不要变形',hint:'保留场景，只更换宠物品种'}
   }[preset] || {}
   if (cfg.pet) document.getElementById('tpPetType').value = cfg.pet
   document.getElementById('tpPetType').onchange()
@@ -2288,6 +2303,7 @@ function openEditModal(id) {
   document.getElementById('sTitle').value = p.title||''; document.getElementById('sTool').value = p.tool||''
   document.getElementById('sScenario').value = p.scenario||''; document.getElementById('sMediaType').value = p.mediaType||''
   document.getElementById('sBrand').value = p.brand||''
+  document.getElementById('sIsTemplate').checked = p.isTemplate || false
   document.getElementById('sTags').value = (p.tags||[]).join(', ')
   document.getElementById('sResult').value = p.result||''; document.getElementById('sRating').value = p.rating||5
   document.getElementById('sCost').value = p.cost??''
@@ -2311,6 +2327,7 @@ function switchModalTab(tab) {
 }
 function clearPromptForm() {
   ['sTitle','sTool','sScenario','sTags','sResult','sMediaType','sBrand'].forEach(id=>document.getElementById(id).value='')
+  document.getElementById('sIsTemplate').checked = false
   document.getElementById('sRating').value='5'; document.getElementById('sCost').value=''
   ;['dSubject','dAction','dEnvironment','dLighting','dComposition','dStyle','dQuality','dNegative'].forEach(id=>document.getElementById(id).value='')
   document.getElementById('freePrompt').value=''; document.getElementById('aiLoading').classList.remove('visible')
@@ -2324,6 +2341,7 @@ function getPromptFormData() {
     tool: document.getElementById('sTool').value,
     mediaType: document.getElementById('sMediaType').value,
     brand: document.getElementById('sBrand').value,
+    isTemplate: document.getElementById('sIsTemplate').checked,
     scenario: document.getElementById('sScenario').value,
     tags: document.getElementById('sTags').value.split(/[,，]/).map(t=>t.trim()).filter(Boolean),
     result: document.getElementById('sResult').value.trim(),
@@ -2465,7 +2483,7 @@ async function openDetail(id) {
 
   document.getElementById('detailTitle').textContent = p.title
   document.getElementById('detailBody').innerHTML = `
-    <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">${p.brand?`<span style="font-size:13px;color:#fff;background:var(--primary);padding:4px 12px;border-radius:12px;font-weight:600">${escHtml(p.brand)}</span>`:''}${p.mediaType?`<span style="font-size:13px;color:var(--text2);padding:4px 12px;background:var(--bg);border-radius:12px">${p.mediaType==='video'?'🎬 生视频':'🖼️ 生图'}</span>`:''}<span class="tool-badge ${toolClass(p.tool)}">${escHtml(p.tool)}</span>${p.scenario?`<span style="font-size:13px;color:var(--text2);padding:4px 12px;background:var(--bg);border-radius:12px">${escHtml(p.scenario)}</span>`:''}${(p.tags||[]).map(t=>`<span style="font-size:12px;color:var(--primary);background:var(--primary-light);padding:3px 10px;border-radius:12px">${escHtml(t)}</span>`).join('')}</div>
+    <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">${p.isTemplate?`<span style="font-size:13px;color:#fff;background:#F59E0B;padding:4px 12px;border-radius:12px;font-weight:600">📌 模板</span>`:''}${p.brand?`<span style="font-size:13px;color:#fff;background:var(--primary);padding:4px 12px;border-radius:12px;font-weight:600">${escHtml(p.brand)}</span>`:''}${p.mediaType?`<span style="font-size:13px;color:var(--text2);padding:4px 12px;background:var(--bg);border-radius:12px">${p.mediaType==='video'?'🎬 生视频':'🖼️ 生图'}</span>`:''}<span class="tool-badge ${toolClass(p.tool)}">${escHtml(p.tool)}</span>${p.scenario?`<span style="font-size:13px;color:var(--text2);padding:4px 12px;background:var(--bg);border-radius:12px">${escHtml(p.scenario)}</span>`:''}${(p.tags||[]).map(t=>`<span style="font-size:12px;color:var(--primary);background:var(--primary-light);padding:3px 10px;border-radius:12px">${escHtml(t)}</span>`).join('')}</div>
     <div style="display:flex;gap:16px;margin-bottom:20px;font-size:13px;color:var(--text2)"><span>评分：${stars}</span><span>使用：${p.usageCount||0} 次</span>${p.cost?`<span>成本：${fmtMoney(p.cost)}/次</span>`:''}<span>创建：${formatDate(p.createdAt)}</span></div>
     ${attachHtml}
     <div style="margin-bottom:20px"><div style="font-size:11px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">📝 完整提示词</div><div style="background:var(--bg);padding:14px 16px;border-radius:12px;font-size:14px;line-height:1.8;white-space:pre-wrap">${escHtml(full)}</div></div>
