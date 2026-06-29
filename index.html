@@ -847,6 +847,14 @@ const CHAT_API = 'https://ark.cn-beijing.volces.com/api/v3/chat/completions'
 const VISION_MODEL = 'ep-20260607231451-mjjpc'
 
 const TOOLS = ['image2','Seedream','Nano Banana','Sora2','Omni Flash','Seedance2.0','其他']
+const TOOL_URLS = {
+  'image2':'https://jiushi.lk666.ai/home?menu=tupian',
+  'Seedream':'https://jiushi.lk666.ai/home?menu=tupian',
+  'Nano Banana':'https://jiushi.lk666.ai/home?menu=tupian',
+  'Sora2':'https://jiushi.lk666.ai/home?menu=shipin',
+  'Omni Flash':'https://jiushi.lk666.ai/home?menu=shipin',
+  'Seedance2.0':'https://jiushi.lk666.ai/home?menu=shipin'
+}
 const SCENARIOS = ['静物延申','使用图延申','多猫互动','图生视频','真人替换','爆款模仿','产品痛点','直播切片','其他']
 const TOOL_CLASS = {'image2':'tool-gpt','Seedream':'tool-jimeng','Nano Banana':'tool-nano','Sora2':'tool-sora','Omni Flash':'tool-omni','Seedance2.0':'tool-seedance','其他':''}
 const DIM_LABELS = {subject:'主体',action:'动作',environment:'环境',lighting:'光线',composition:'构图',style:'风格',quality:'画质',negative:'负面词'}
@@ -2492,6 +2500,18 @@ async function openDetail(id) {
     ${logsHtml}
   `
   document.getElementById('detailCopyBtn').onclick = ()=>copyFullPrompt(id)
+  const toolUrl = TOOL_URLS[p.tool]
+  const existingBtn = document.getElementById('detailToolLink')
+  if (existingBtn) existingBtn.remove()
+  if (toolUrl) {
+    const linkBtn = document.createElement('button')
+    linkBtn.id = 'detailToolLink'
+    linkBtn.className = 'btn btn-outline btn-sm'
+    linkBtn.style.cssText = 'color:var(--primary);border-color:var(--primary)'
+    linkBtn.textContent = '🔗 打开 ' + p.tool
+    linkBtn.onclick = () => window.open(toolUrl, '_blank')
+    document.getElementById('detailPanel').querySelector('.detail-panel-footer').prepend(linkBtn)
+  }
   document.getElementById('detailEditBtn').onclick = ()=>{closeDetail();openEditModal(id)}
   document.getElementById('detailLogBtn').onclick = ()=>{closeDetail();openLogModal(id)}
   document.getElementById('detailDeleteBtn').onclick = ()=>{showConfirm('确认删除',`确定要删除「${p.title}」吗？`,()=>{const atts=(p.attachments||[]);prompts=prompts.filter(x=>x.id!==id);saveData(STORAGE_KEY,prompts);if(_sbToken)cloudDeletePrompt(id).catch(()=>{});closeDetail();renderLibrary();showToast('已删除');(async()=>{for(const a of atts){if(a._storagePath){sbStorageDelete(a._storagePath).catch(()=>{})}else{if(a._fileName)await deleteMediaFile(a._fileName).catch(()=>{});if(a._thumbName)await deleteMediaFile(a._thumbName).catch(()=>{})}}})()})}
