@@ -564,7 +564,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
       <div id="tabStructured">
         <div class="form-row">
           <div class="form-group"><label class="form-label">标题 *</label><input class="form-input" id="sTitle" placeholder="如：多猫互动-猫抓桶场景"></div>
-          <div class="form-group"><label class="form-label">使用工具 *</label><select class="form-select" id="sTool"><option value="">请选择</option><option value="GPT-image2">GPT-image2 (¥0.06/张)</option><option value="即梦">即梦 (¥0.17/张)</option><option value="Midjourney">Midjourney (¥0.14/张)</option><option value="Nano Banana Pro">Nano Banana Pro (¥0.22/张)</option><option value="Sora2">Sora2 (¥0.4-1.2/条)</option><option value="Omni">Omni (产品不变形)</option><option value="Seedance2.0 PC">Seedance2.0 (PC端)</option><option value="Seedance2.0 App">Seedance2.0 (App端)</option><option value="其他">其他工具</option></select></div>
+          <div class="form-group"><label class="form-label">使用工具 *</label><select class="form-select" id="sTool"><option value="">请选择</option><option value="image2">image2</option><option value="Seedream">Seedream</option><option value="Nano Banana">Nano Banana</option><option value="Sora2">Sora2</option><option value="Omni Flash">Omni Flash</option><option value="Seedance2.0">Seedance2.0</option><option value="其他">其他工具</option></select></div>
         </div>
         <div class="form-row">
           <div class="form-group"><label class="form-label">类型</label><select class="form-select" id="sMediaType"><option value="">不限</option><option value="image">🖼️ 生图提示词</option><option value="video">🎬 生视频提示词</option></select></div>
@@ -629,7 +629,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei
     <div class="modal-body">
       <div class="form-group"><label class="form-label">关联提示词 <span class="hint">（可选）</span></label><select class="form-select" id="logPromptId"><option value="">不关联</option></select></div>
       <div class="form-row">
-        <div class="form-group"><label class="form-label">使用工具 *</label><select class="form-select" id="logTool"><option value="">请选择</option><option value="GPT-image2">GPT-image2</option><option value="即梦">即梦</option><option value="Midjourney">Midjourney</option><option value="Nano Banana Pro">Nano Banana Pro</option><option value="Sora2">Sora2</option><option value="Omni">Omni</option><option value="Seedance2.0 PC">Seedance2.0 PC</option><option value="Seedance2.0 App">Seedance2.0 App</option><option value="其他">其他</option></select></div>
+        <div class="form-group"><label class="form-label">使用工具 *</label><select class="form-select" id="logTool"><option value="">请选择</option><option value="image2">image2</option><option value="Seedream">Seedream</option><option value="Nano Banana">Nano Banana</option><option value="Sora2">Sora2</option><option value="Omni Flash">Omni Flash</option><option value="Seedance2.0">Seedance2.0</option><option value="其他">其他</option></select></div>
         <div class="form-group"><label class="form-label">花费（元）*</label><input class="form-input" id="logCost" type="number" step="0.01" placeholder="0.06" min="0"></div>
       </div>
       <div class="form-group"><label class="form-label">使用的提示词文本</label><textarea class="form-textarea" id="logPromptText" placeholder="粘贴实际使用的提示词…" style="min-height:80px"></textarea></div>
@@ -846,9 +846,9 @@ const API_KEY = 'ark-31739f6b-053f-440f-a9d2-092fb2b88307-2c854'
 const CHAT_API = 'https://ark.cn-beijing.volces.com/api/v3/chat/completions'
 const VISION_MODEL = 'ep-20260607231451-mjjpc'
 
-const TOOLS = ['GPT-image2','即梦','Midjourney','Nano Banana Pro','Sora2','Omni','Seedance2.0 PC','Seedance2.0 App','其他']
+const TOOLS = ['image2','Seedream','Nano Banana','Sora2','Omni Flash','Seedance2.0','其他']
 const SCENARIOS = ['静物延申','使用图延申','多猫互动','图生视频','真人替换','爆款模仿','产品痛点','直播切片','其他']
-const TOOL_CLASS = {'GPT-image2':'tool-gpt','即梦':'tool-jimeng','Midjourney':'tool-mj','Nano Banana Pro':'tool-nano','Sora2':'tool-sora','Omni':'tool-omni','Seedance2.0 PC':'tool-seedance','Seedance2.0 App':'tool-seedance','其他':''}
+const TOOL_CLASS = {'image2':'tool-gpt','Seedream':'tool-jimeng','Nano Banana':'tool-nano','Sora2':'tool-sora','Omni Flash':'tool-omni','Seedance2.0':'tool-seedance','其他':''}
 const DIM_LABELS = {subject:'主体',action:'动作',environment:'环境',lighting:'光线',composition:'构图',style:'风格',quality:'画质',negative:'负面词'}
 
 // ====== TEMPLATE DATA ======
@@ -900,15 +900,15 @@ const TPL_QUALITIES = [
 
 // ====== SAMPLE DATA ======
 const SAMPLE_PROMPTS = [
-  {id:'sample-1',title:'多猫互动-猫抓桶实拍延申',tool:'GPT-image2',scenario:'多猫互动',tags:['宠物','猫','实拍+AI','静物'],dimensions:{subject:'三层猫抓桶，顶层摆放了假花瓶、书、眼镜；蓝猫蜷在中层舔爪子，白橘小猫从底层门洞探出头',action:'两只猫在上面玩，蓝猫舔爪子，小猫探头',environment:'浅灰色砖墙背景，浅灰木地板，温馨家居环境',lighting:'柔和自然光，侧光，温馨干净',composition:'平视视角，中景，三层纵向构图',style:'真实手机实拍风格，温馨家居风',quality:'超清，毛发细节清晰，质感真实',negative:'不要卡通风格，不要暗调，不要模糊，不要杂乱背景'},result:'效果很好，猫的毛发质感真实，三层结构清晰。',rating:5,cost:0.06,usageCount:12,createdAt:'2026-06-05T10:30:00Z',updatedAt:'2026-06-05T10:30:00Z'},
-  {id:'sample-2',title:'产品痛点-猫抓沙发破损对比',tool:'即梦',scenario:'产品痛点',tags:['宠物','痛点展示','对比','沙发'],dimensions:{subject:'一张被猫抓坏的真皮沙发，表面有明显的抓痕和破损',action:'猫正在抓沙发边缘，爪子嵌入皮质',environment:'现代客厅环境，干净整洁，与破损沙发形成反差',lighting:'明亮的室内光，重点照亮沙发破损处',composition:'特写+中景切换，突出破损细节',style:'写实风格，类似问题曝光短视频开头',quality:'高清，纹理清晰，破损细节可见',negative:'不要修复效果，不要美化破损，不要暗调'},result:'抓痕效果逼真，无需真的毁坏沙发就能展示痛点。',rating:4,cost:0.17,usageCount:6,createdAt:'2026-06-03T14:00:00Z',updatedAt:'2026-06-04T09:00:00Z'},
-  {id:'sample-3',title:'爆款开头模仿-宠物零食展示',tool:'Seedance2.0 PC',scenario:'爆款模仿',tags:['宠物','零食','爆款模仿','视频'],dimensions:{subject:'各种宠物零食摆放在木质托盘上，包括肉干、咬胶、饼干',action:'一只金毛犬从画面外伸头进来嗅闻零食，尾巴在画面中摇晃',environment:'明亮厨房台面，温暖木色调',lighting:'暖调自然光，从窗户打进来，食物表面有光泽',composition:'俯拍45度角，零食在前景，狗狗在中景',style:'抖音爆款带货视频风格，真实亲切',quality:'4K高清，食物的光泽和质感突出',negative:'不要冷色调，不要商业广告感，不要静态摆拍'},result:'开头3秒狗狗探头+尾巴摇动的动作很有代入感。',rating:4,cost:0.8,usageCount:3,createdAt:'2026-05-28T16:00:00Z',updatedAt:'2026-06-01T11:00:00Z'},
-  {id:'sample-4',title:'真人替换-男博主转女博主',tool:'Seedance2.0 App',scenario:'真人替换',tags:['真人替换','直播','人设','视频'],dimensions:{subject:'一位女性博主站在宠物用品货架前介绍产品',action:'拿起产品展示，自然的手势和表情',environment:'宠物用品店展示架背景',lighting:'环形灯打光，直播标准光线',composition:'半身景，人物居中，产品在手中展示',style:'直播切片风格，自然不刻意',quality:'1080P，人物清晰，产品不变形',negative:'不要僵硬表情，不要产品变形，不要过度美颜'},result:'运镜节奏和话术逻辑保留得很好。产品展示时清晰不变形。',rating:5,cost:1.2,usageCount:4,createdAt:'2026-05-25T08:00:00Z',updatedAt:'2026-05-25T08:00:00Z'}
+  {id:'sample-1',title:'多猫互动-猫抓桶实拍延申',tool:'image2',scenario:'多猫互动',tags:['宠物','猫','实拍+AI','静物'],dimensions:{subject:'三层猫抓桶，顶层摆放了假花瓶、书、眼镜；蓝猫蜷在中层舔爪子，白橘小猫从底层门洞探出头',action:'两只猫在上面玩，蓝猫舔爪子，小猫探头',environment:'浅灰色砖墙背景，浅灰木地板，温馨家居环境',lighting:'柔和自然光，侧光，温馨干净',composition:'平视视角，中景，三层纵向构图',style:'真实手机实拍风格，温馨家居风',quality:'超清，毛发细节清晰，质感真实',negative:'不要卡通风格，不要暗调，不要模糊，不要杂乱背景'},result:'效果很好，猫的毛发质感真实，三层结构清晰。',rating:5,cost:0.06,usageCount:12,createdAt:'2026-06-05T10:30:00Z',updatedAt:'2026-06-05T10:30:00Z'},
+  {id:'sample-2',title:'产品痛点-猫抓沙发破损对比',tool:'Seedream',scenario:'产品痛点',tags:['宠物','痛点展示','对比','沙发'],dimensions:{subject:'一张被猫抓坏的真皮沙发，表面有明显的抓痕和破损',action:'猫正在抓沙发边缘，爪子嵌入皮质',environment:'现代客厅环境，干净整洁，与破损沙发形成反差',lighting:'明亮的室内光，重点照亮沙发破损处',composition:'特写+中景切换，突出破损细节',style:'写实风格，类似问题曝光短视频开头',quality:'高清，纹理清晰，破损细节可见',negative:'不要修复效果，不要美化破损，不要暗调'},result:'抓痕效果逼真，无需真的毁坏沙发就能展示痛点。',rating:4,cost:0.17,usageCount:6,createdAt:'2026-06-03T14:00:00Z',updatedAt:'2026-06-04T09:00:00Z'},
+  {id:'sample-3',title:'爆款开头模仿-宠物零食展示',tool:'Seedance2.0',scenario:'爆款模仿',tags:['宠物','零食','爆款模仿','视频'],dimensions:{subject:'各种宠物零食摆放在木质托盘上，包括肉干、咬胶、饼干',action:'一只金毛犬从画面外伸头进来嗅闻零食，尾巴在画面中摇晃',environment:'明亮厨房台面，温暖木色调',lighting:'暖调自然光，从窗户打进来，食物表面有光泽',composition:'俯拍45度角，零食在前景，狗狗在中景',style:'抖音爆款带货视频风格，真实亲切',quality:'4K高清，食物的光泽和质感突出',negative:'不要冷色调，不要商业广告感，不要静态摆拍'},result:'开头3秒狗狗探头+尾巴摇动的动作很有代入感。',rating:4,cost:0.8,usageCount:3,createdAt:'2026-05-28T16:00:00Z',updatedAt:'2026-06-01T11:00:00Z'},
+  {id:'sample-4',title:'真人替换-男博主转女博主',tool:'Seedance2.0',scenario:'真人替换',tags:['真人替换','直播','人设','视频'],dimensions:{subject:'一位女性博主站在宠物用品货架前介绍产品',action:'拿起产品展示，自然的手势和表情',environment:'宠物用品店展示架背景',lighting:'环形灯打光，直播标准光线',composition:'半身景，人物居中，产品在手中展示',style:'直播切片风格，自然不刻意',quality:'1080P，人物清晰，产品不变形',negative:'不要僵硬表情，不要产品变形，不要过度美颜'},result:'运镜节奏和话术逻辑保留得很好。产品展示时清晰不变形。',rating:5,cost:1.2,usageCount:4,createdAt:'2026-05-25T08:00:00Z',updatedAt:'2026-05-25T08:00:00Z'}
 ]
 const SAMPLE_LOGS = [
-  {id:'log_1',promptId:'sample-1',tool:'GPT-image2',promptText:'三层猫抓桶，两只猫在上面玩…',cost:0.06,result:'success',notes:'1次生成4张，3张可用',imageCount:4,usableCount:3,createdAt:'2026-06-09T14:30:00Z'},
-  {id:'log_2',promptId:'sample-2',tool:'即梦',promptText:'被猫抓坏的真皮沙发…',cost:0.17,result:'partial',notes:'抓痕效果不错但光线偏暗',imageCount:4,usableCount:2,createdAt:'2026-06-09T10:00:00Z'},
-  {id:'log_3',promptId:'sample-3',tool:'Seedance2.0 PC',promptText:'宠物零食展示，金毛探头…',cost:0.8,result:'success',notes:'视频流畅，开头3秒钩子效果好',imageCount:1,usableCount:1,createdAt:'2026-06-08T16:00:00Z'},
+  {id:'log_1',promptId:'sample-1',tool:'image2',promptText:'三层猫抓桶，两只猫在上面玩…',cost:0.06,result:'success',notes:'1次生成4张，3张可用',imageCount:4,usableCount:3,createdAt:'2026-06-09T14:30:00Z'},
+  {id:'log_2',promptId:'sample-2',tool:'Seedream',promptText:'被猫抓坏的真皮沙发…',cost:0.17,result:'partial',notes:'抓痕效果不错但光线偏暗',imageCount:4,usableCount:2,createdAt:'2026-06-09T10:00:00Z'},
+  {id:'log_3',promptId:'sample-3',tool:'Seedance2.0',promptText:'宠物零食展示，金毛探头…',cost:0.8,result:'success',notes:'视频流畅，开头3秒钩子效果好',imageCount:1,usableCount:1,createdAt:'2026-06-08T16:00:00Z'},
 ]
 
 // ====== DATA LAYER ======
@@ -1309,13 +1309,13 @@ function applyPreset(preset) {
   document.getElementById('tpTool').value = ''; document.getElementById('tpProduct').value = ''; document.getElementById('tpExtra').value = ''; document.getElementById('tpNegative').value = ''
   // Apply presets
   const cfg = {
-    pet_product: {pet:'cat',scenario:'still_life',style:'real',light:'natural_soft',comp:'overhead',quality:'4k',tool:'GPT-image2',neg:'不要卡通，不要模糊，不要暗调'},
-    pain_point: {pet:'cat',scenario:'pain_point',style:'real',light:'natural_bright',comp:'closeup',quality:'4k',tool:'即梦',neg:'不要美化效果，不要模糊'},
-    trending: {pet:'dog',scenario:'trending',style:'warm',light:'warm',comp:'overhead',quality:'4k',tool:'Seedance2.0 PC',neg:'不要冷色调，不要静态摆拍'},
-    portrait: {pet:'cat',scenario:'portrait',style:'minimal',light:'softbox',comp:'eye_level',quality:'8k',tool:'GPT-image2',neg:'不要复杂背景，不要暗调'},
-    scene: {pet:'product',scenario:'multi_pet',style:'warm',light:'natural_soft',comp:'wide',quality:'4k',tool:'GPT-image2',neg:'不要卡通'},
-    swap_bg: {pet:'cat',scenario:'still_life',style:'warm',light:'natural_soft',comp:'medium',quality:'4k',tool:'GPT-image2',neg:'不要卡通，不要模糊',hint:'保留主体，只替换背景环境'},
-    swap_pet: {pet:'dog',scenario:'multi_pet',style:'real',light:'natural_soft',comp:'medium',quality:'4k',tool:'GPT-image2',neg:'不要卡通，不要变形',hint:'保留场景，只更换宠物品种'}
+    pet_product: {pet:'cat',scenario:'still_life',style:'real',light:'natural_soft',comp:'overhead',quality:'4k',tool:'image2',neg:'不要卡通，不要模糊，不要暗调'},
+    pain_point: {pet:'cat',scenario:'pain_point',style:'real',light:'natural_bright',comp:'closeup',quality:'4k',tool:'Seedream',neg:'不要美化效果，不要模糊'},
+    trending: {pet:'dog',scenario:'trending',style:'warm',light:'warm',comp:'overhead',quality:'4k',tool:'Seedance2.0',neg:'不要冷色调，不要静态摆拍'},
+    portrait: {pet:'cat',scenario:'portrait',style:'minimal',light:'softbox',comp:'eye_level',quality:'8k',tool:'image2',neg:'不要复杂背景，不要暗调'},
+    scene: {pet:'product',scenario:'multi_pet',style:'warm',light:'natural_soft',comp:'wide',quality:'4k',tool:'image2',neg:'不要卡通'},
+    swap_bg: {pet:'cat',scenario:'still_life',style:'warm',light:'natural_soft',comp:'medium',quality:'4k',tool:'image2',neg:'不要卡通，不要模糊',hint:'保留主体，只替换背景环境'},
+    swap_pet: {pet:'dog',scenario:'multi_pet',style:'real',light:'natural_soft',comp:'medium',quality:'4k',tool:'image2',neg:'不要卡通，不要变形',hint:'保留场景，只更换宠物品种'}
   }[preset] || {}
   if (cfg.pet) document.getElementById('tpPetType').value = cfg.pet
   document.getElementById('tpPetType').onchange()
@@ -1402,7 +1402,7 @@ function saveTemplateToLibrary() {
   document.getElementById('dQuality').value = d.quality
   document.getElementById('dNegative').value = d.negative
   // Auto-set mediaType based on tool
-  const vidTools = ['Sora2','Seedance2.0 PC','Seedance2.0 App']
+  const vidTools = ['Sora2','Seedance2.0']
   document.getElementById('sMediaType').value = vidTools.includes(d.tool) ? 'video' : d.tool ? 'image' : ''
   switchModalTab('structured')
   _pendingAttachments = []; _removedAttachmentIds = []
@@ -1418,8 +1418,8 @@ const NODE_TYPES = {
   video_gen: { label:'🎬 AI 生视频', hdrClass:'video-hdr', inputs:['prompt'], outputs:['video'] },
   review: { label:'✅ 审核/记录', hdrClass:'review-hdr', inputs:['result'], outputs:[] }
 }
-const WF_IMG_TOOLS = ['GPT-image2','即梦','Midjourney','Nano Banana Pro','Omni','其他']
-const WF_VIDEO_TOOLS = ['Sora2','Seedance2.0 PC','Seedance2.0 App','即梦','其他']
+const WF_IMG_TOOLS = ['image2','Seedream','Nano Banana','Omni Flash','其他']
+const WF_VIDEO_TOOLS = ['Sora2','Seedance2.0','其他']
 
 let workflows = []
 let currentWfId = null
@@ -2705,14 +2705,12 @@ function exportFeishu() {
   lines.push('')
   lines.push('| 工具 | 单张/条成本 | 最适合场景 |')
   lines.push('|------|-----------|-----------|')
-  lines.push('| GPT-image2 | ¥0.06 | 批量素材、基础背景图 |')
-  lines.push('| 即梦 | ¥0.17 | 国风、抽卡生成 |')
-  lines.push('| Midjourney | ¥0.14 | 设计感、艺术风格 |')
-  lines.push('| Nano Banana Pro | ¥0.22 | 宠物特写、精准文字 |')
-  lines.push('| Sora2 | ¥0.4-1.2 | 短镜头、产品痛点展示 |')
-  lines.push('| Omni | — | 产品不变形场景 |')
-  lines.push('| Seedance2.0 PC | ¥0.4-1.2 | 爆款视频模仿 |')
-  lines.push('| Seedance2.0 App | ¥0.4-1.2 | 直播间人设科普 |')
+  lines.push('| image2 | — | 生图基础工具 |')
+  lines.push('| Seedream | — | 生图扩展工具 |')
+  lines.push('| Nano Banana | — | 宠物特写、精准文字 |')
+  lines.push('| Sora2 | — | 视频基础工具 |')
+  lines.push('| Omni Flash | — | 产品不变形场景 |')
+  lines.push('| Seedance2.0 | — | 生视频工具 |')
   lines.push('')
   lines.push('---')
   lines.push('')
