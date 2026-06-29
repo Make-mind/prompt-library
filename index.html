@@ -2406,10 +2406,10 @@ async function savePrompt() {
 
   closeModal()
   renderLibrary()
-  // 后台同步到云端
+  // 后台推送到云端（不拉取，避免覆盖本地数据）
   if (_sbToken) {
     const p = prompts.find(x => x.id === promptId)
-    if (p) cloudSavePrompt(p).then(() => pullFromCloud()).catch(() => {})
+    if (p) cloudSavePrompt(p).catch(() => {})
   }
   if (currentDetailId === promptId) openDetail(promptId)
   editingId = null
